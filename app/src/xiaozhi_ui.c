@@ -9,8 +9,8 @@
 static struct rt_semaphore update_ui_sema;
 /*Create style with the new font*/
 static lv_style_t style;
-extern const unsigned char FZYTK_font[];
-extern const int FZYTK_font_size;
+extern const unsigned char droid_sans_fallback_font[];
+extern const int droid_sans_fallback_font_size;
 
 extern const lv_image_dsc_t color_neutral;
 extern const lv_image_dsc_t color_happy;
@@ -419,7 +419,7 @@ void xiaozhi_ui_task(void *args)
 
 
     lv_style_init(&style);
-    lv_font_t *font = lv_tiny_ttf_create_data(FZYTK_font, FZYTK_font_size, 30);
+    lv_font_t *font = lv_tiny_ttf_create_data(droid_sans_fallback_font, droid_sans_fallback_font_size, 30);
     lv_style_set_text_font(&style, font);
     lv_style_set_text_align(&style, LV_TEXT_ALIGN_CENTER);
     lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);//SET BG COLOR
