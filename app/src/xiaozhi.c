@@ -78,7 +78,7 @@ static const char *ota_version = "{\r\n "
                                  "\"psram_size\": 0,\r\n"
                                  "\"minimum_free_heap_size\": 123456,\r\n"
                                  "\"mac_address\": \"%s\",\r\n"
-                                 "\"uuid\": \"12345678-1234-1234-1234-123456789012\",\r\n"
+                                 "\"uuid\": \"%s\",\r\n"
                                  "\"chip_model_name\": \"sf32lb563\",\r\n"
                                  "\"chip_info\": {\r\n"
                                  "    \"model\": 1,\r\n"
@@ -128,6 +128,30 @@ const char *mode_str[] =
 };
 
 char mac_address_string[20];
+char client_id_string[36];
+ALIGN(4) uint8_t g_sha256_result[32] = {0};
+/**
+ * @brief Do hash , Single calculation, polling mode.
+ * @param algo HASH Algorithm type.
+ * @param raw_data Input data.
+ * @param raw_data_len Input data len.
+ * @param result Output data.
+ * @param result_len Output data len.
+ *
+ * @retval none
+ */
+void hash_run(uint8_t algo, uint8_t *raw_data, uint32_t raw_data_len,
+              uint8_t *result, uint32_t result_len)
+{
+    /* Rest hash block. */
+    HAL_HASH_reset();
+    /* Initialize AES Hash hardware block. */
+    HAL_HASH_init(NULL, algo, 0);
+    /* Do hash. HAL_HASH_run will block until hash finish. */
+    HAL_HASH_run(raw_data, raw_data_len, 1);
+    /* Get hash result. */
+    HAL_HASH_result(result);
+}
 
 char *get_mac_address()
 {
@@ -140,6 +164,38 @@ char *get_mac_address()
                     *p, *(p + 1), *(p + 2), *(p + 3), *(p + 4), *(p + 5));
     }
     return (&(mac_address_string[0]));
+}
+
+void hex_2_asc(uint8_t n, char *str)
+{
+    uint8_t i=(n>>4);
+    if (i>=10)
+        *str= i+'a'-10;
+    else
+        *str= i+'0';
+    str++, i=n&0xf;
+    if (i>=10)
+        *str= i+'a'-10;
+    else
+        *str= i+'0';    
+}
+
+char *get_client_id()
+{    
+    if (client_id_string[0] == '\0') {
+        int i,j=0;
+        BTS2S_ETHER_ADDR   addr = bt_pan_get_mac_address(NULL);
+        hash_run(HASH_ALGO_SHA256, (uint8_t*)&addr, sizeof(addr), g_sha256_result, sizeof(g_sha256_result));
+        for (i=0;i<16;i++,j+=2) {
+            //12345678-1234-1234-1234-123456789012
+            if (i==4||i==6||i==8||i==10) {
+                client_id_string[j++]='-';
+            }                
+            hex_2_asc(g_sha256_result[i],&client_id_string[j]);
+        }
+        rt_kprintf(client_id_string);
+    }
+    return (&(client_id_string[0]));    
 }
 
 static void svr_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
@@ -170,7 +226,7 @@ static void mqtt_found_callback(const char *name, const ip_addr_t *ipaddr, void 
     if (ipaddr != NULL)
     {
         xiaozhi_context_t *ctx = (xiaozhi_context_t *)callback_arg;
-        rt_kprintf("mqtt lookup succeeded, IP: %s\n", ipaddr_ntoa(ipaddr));
+        rt_kprintf("DNS lookup succeeded, IP: %s\n", ipaddr_ntoa(ipaddr));
         memcpy(&(ctx->mqtt_addr), ipaddr, sizeof(ip_addr_t));
         rt_sem_release(ctx->sem);
     }
@@ -511,13 +567,13 @@ char *get_xiaozhi()
     if (check_internet_access() == 0)
         return buffer;
 
-    int size = strlen(ota_version) + sizeof(mac_address_string) * 2 + 16;
+    int size = strlen(ota_version) + sizeof(client_id_string) + sizeof(mac_address_string) * 2 + 16;
     char *ota_formatted = rt_malloc(size);
     if (!ota_formatted)
     {
         goto __exit;
     }
-    rt_snprintf(ota_formatted, size, ota_version, get_mac_address(), get_mac_address());
+    rt_snprintf(ota_formatted, size, ota_version, get_mac_address(), get_client_id(), get_mac_address());
 
     /* 为 weather_url 分配空间 */
     xiaozhi_url = rt_calloc(1, GET_URL_LEN_MAX);
@@ -538,7 +594,7 @@ char *get_xiaozhi()
     }
 
     webclient_header_fields_add(session, "Device-Id: %s \r\n", get_mac_address());
-    webclient_header_fields_add(session, "Client-Id: 12345678-1234-1234-1234-123456789012 \r\n");
+    webclient_header_fields_add(session, "Client-Id: %s \r\n", get_client_id());
     webclient_header_fields_add(session, "Content-Type: application/json \r\n");
     webclient_header_fields_add(session, "Content-length: %d \r\n", strlen(ota_formatted));
     //webclient_header_fields_add(session, "X-language:");
