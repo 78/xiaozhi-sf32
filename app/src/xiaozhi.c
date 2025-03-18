@@ -128,7 +128,7 @@ const char *mode_str[] =
 };
 
 char mac_address_string[20];
-char client_id_string[36];
+char client_id_string[40];
 ALIGN(4) uint8_t g_sha256_result[32] = {0};
 /**
  * @brief Do hash , Single calculation, polling mode.
