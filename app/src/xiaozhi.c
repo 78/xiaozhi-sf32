@@ -337,8 +337,7 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags
         g_state = kDeviceStateUnknown;
         rt_kprintf("session ended\n");
 
-        xiaozhi_ui_chat_output("Xiaozhi 已断开!");
-        xiaozhi_ui_update_ble("close");
+        xiaozhi_ui_chat_output("Xiaozhi 已断开请重启!");
         xiaozhi_ui_chat_status("disconnected");
         xiaozhi_ui_update_emoji("neutral");
     }
@@ -494,6 +493,7 @@ mqtt_client_t *mqtt_xiaozhi(xiaozhi_context_t *ctx)
         else
         {
             rt_kprintf("timeout\n");
+            xiaozhi_ui_chat_output("Xiaozhi 连接超时请重启!");
             clnt = NULL;
         }
     }

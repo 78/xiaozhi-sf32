@@ -67,6 +67,18 @@ static lv_obj_t *global_img21;
 static lv_obj_t *global_img_ble;
 static lv_obj_t *global_img_ble_close;
 
+void set_position_by_percentage(lv_obj_t * obj, int x_percent, int y_percent) {
+    // Gets the width and height of the screen resolution
+    int screen_width = lv_disp_get_hor_res(NULL);
+    int screen_height = lv_disp_get_ver_res(NULL);
+
+    // Calculate the sitting of the target position
+    int target_x = (screen_width * x_percent) / 100;
+    int target_y = (screen_height * y_percent) / 100;
+
+    // Sets the location of the object
+    lv_obj_set_pos(obj, target_x, target_y);
+}
 
 rt_err_t xiaozhi_ui_obj_init(void)
 {
@@ -85,7 +97,7 @@ rt_err_t xiaozhi_ui_obj_init(void)
     lv_obj_add_style(global_label2, &style, 0);
     lv_obj_set_width(global_label2, LV_HOR_RES_MAX);
     lv_obj_set_style_text_align(global_label2,LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(global_label2, LV_ALIGN_BOTTOM_MID, 0, -55);
+    set_position_by_percentage(global_label2, 0, 80);
 
 
     LV_IMAGE_DECLARE(color_neutral);

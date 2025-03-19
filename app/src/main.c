@@ -78,7 +78,6 @@ void HAL_MspInit(void)
 
 #include "ulog.h"
 
-
 #define BT_APP_READY 0
 #define BT_APP_CONNECT_PAN  1
 #define BT_APP_CONNECT_PAN_SUCCESS 2
@@ -208,13 +207,19 @@ static int bt_app_interface_event_handle(uint16_t type, uint16_t event_id, uint8
         {
         case BT_NOTIFY_PAN_PROFILE_CONNECTED:
         {
+            xiaozhi_ui_chat_output("pan connect successed");
+            xiaozhi_ui_update_ble("open");
             LOG_I("pan connect successed \n");
             rt_mb_send(g_bt_app_mb, BT_APP_CONNECT_PAN_SUCCESS);
         }
         break;
         case BT_NOTIFY_PAN_PROFILE_DISCONNECTED:
         {
+            xiaozhi_ui_chat_status("remote device...");
+            xiaozhi_ui_chat_output("pan disconnect with remote device");
+            xiaozhi_ui_update_ble("close");
             LOG_I("pan disconnect with remote device\n");
+
         }
         break;
         default:
@@ -240,7 +245,7 @@ uint32_t bt_get_class_of_device()
 #ifdef BT_DEVICE_NAME
     static const char *local_name = BT_DEVICE_NAME;
 #else
-    static const char *local_name = "sifli_pan";
+    static const char *local_name = "sifli-pan";
 #endif
 
 int main(void)
@@ -287,7 +292,7 @@ int main(void)
             rt_kputs("BT_APP_CONNECT_PAN_SUCCESS\r\n");
             xiaozhi_ui_chat_output("pan connect successed,Starting Xiaozhi...");
             xiaozhi_ui_update_ble("open");
-            xiaozhi_ui_chat_status("pan connect...");
+            xiaozhi_ui_chat_status("正在连接xiaozhi...");
             xiaozhi_ui_update_emoji("neutral");
 
             rt_thread_mdelay(2000);
