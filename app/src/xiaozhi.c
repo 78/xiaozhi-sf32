@@ -48,6 +48,7 @@
 #include "lwip/apps/websocket_client.h"
 #include "lwip/apps/mqtt_priv.h"
 #include "lwip/apps/mqtt.h"
+#include "lwip/tcpip.h"
 #include "bf0_hal.h"
 #include "bts2_global.h"
 #include "bts2_app_pan.h"
@@ -335,9 +336,8 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags
     else if (strcmp(type, "goodbye") == 0)
     {
         g_state = kDeviceStateUnknown;
-        rt_kprintf("session ended\n");
 
-        xiaozhi_ui_chat_output("Xiaozhi 已断开请重启!");
+        xiaozhi_ui_chat_output("goodbye! 等待唤醒...");
         xiaozhi_ui_chat_status("disconnected");
         xiaozhi_ui_update_emoji("neutral");
     }
@@ -396,15 +396,35 @@ void mqtt_hello(xiaozhi_context_t *ctx)
     rt_kprintf("\r\nhello_message:");
     rt_kputs(hello_message);
     rt_kprintf("\r\n");
-    mqtt_set_inpub_callback(&(ctx->clnt), my_mqtt_incoming_publish_cb, my_mqtt_incoming_data_cb, ctx);
-    mqtt_publish(&(ctx->clnt), ctx->publish_topic, hello_message, strlen(hello_message), 0, 0, my_mqtt_request_cb, ctx);
+    LOCK_TCPIP_CORE();
+    if (mqtt_client_is_connected(&(ctx->clnt)))
+    {
+        mqtt_set_inpub_callback(&(ctx->clnt), my_mqtt_incoming_publish_cb, my_mqtt_incoming_data_cb, ctx);
+        mqtt_publish(&(ctx->clnt), ctx->publish_topic, hello_message, strlen(hello_message), 0, 0, my_mqtt_request_cb, ctx);
+    }
+    else
+    {
+        xiaozhi_ui_chat_status("mqtt is not connected");
+        xiaozhi_ui_chat_output("请重启连接");
+    }
+    UNLOCK_TCPIP_CORE();   
 }
 
 void mqtt_listen_start(xiaozhi_context_t *ctx, int mode)
 {
     rt_snprintf(message, 256, "{\"session_id\":\"%s\",\"type\":\"listen\",\"state\":\"start\",\"mode\":\"%s\"}",
                 ctx->session_id, mode_str[mode]);
-    mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    LOCK_TCPIP_CORE();
+    if (mqtt_client_is_connected(&(ctx->clnt)))
+    {
+        mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    }
+    else
+    {
+        xiaozhi_ui_chat_status("mqtt is not connected");
+        xiaozhi_ui_chat_output("请重启连接");
+    }
+    UNLOCK_TCPIP_CORE();   
     rt_sem_take(ctx->sem, 5000);
 }
 
@@ -429,7 +449,17 @@ void mqtt_listen_stop(xiaozhi_context_t *ctx)
 {
     rt_snprintf(message, 256, "{\"session_id\":\"%s\",\"type\":\"listen\",\"state\":\"stop\"}",
                 ctx->session_id);
-    mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    LOCK_TCPIP_CORE();  
+    if (mqtt_client_is_connected(&(ctx->clnt)))
+    {
+        mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    }
+    else
+    {
+        xiaozhi_ui_chat_status("mqtt is not connected");
+        xiaozhi_ui_chat_output("请重启连接");
+    }
+    UNLOCK_TCPIP_CORE();
     rt_sem_take(ctx->sem, 5000);
 }
 
@@ -441,7 +471,17 @@ void mqtt_speak_abort(xiaozhi_context_t *ctx, int reason)
         strcat(message, ",\"reason\":\"wake_word_detected\"}");
     else
         strcat(message, "}");
-    mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    LOCK_TCPIP_CORE();
+    if (mqtt_client_is_connected(&(ctx->clnt)))
+    {
+        mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    }
+    else
+    {
+        xiaozhi_ui_chat_status("mqtt is not connected");
+        xiaozhi_ui_chat_output("请重启连接");
+    }
+    UNLOCK_TCPIP_CORE(); 
     rt_sem_take(ctx->sem, 5000);
 }
 
@@ -449,7 +489,17 @@ void mqtt_wake_word_detected(xiaozhi_context_t *ctx, char *wakeword)
 {
     rt_snprintf(message, 256, "{\"session_id\":\"%s\",\"type\":\"listen\", \"state\":\"detected\",\"text\":\"%s\"",
                 ctx->session_id, wakeword);
-    mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    LOCK_TCPIP_CORE();
+    if (mqtt_client_is_connected(&(ctx->clnt)))
+    {
+        mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    }
+    else
+    {
+        xiaozhi_ui_chat_status("mqtt is not connected");
+        xiaozhi_ui_chat_output("请重启连接");
+    }
+    UNLOCK_TCPIP_CORE();
     rt_sem_take(ctx->sem, 5000);
 }
 
@@ -457,7 +507,17 @@ void mqtt_iot_descriptor(xiaozhi_context_t *ctx, char *descriptors)
 {
     rt_snprintf(message, 256, "{\"session_id\":\"%s\",\"type\":\"iot\", \"descriptor\":\"%s\"",
                 ctx->session_id, descriptors);
-    mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    LOCK_TCPIP_CORE();
+    if (mqtt_client_is_connected(&(ctx->clnt)))
+    {
+        mqtt_publish(&(ctx->clnt), ctx->publish_topic, message, strlen(message), 0, 0, my_mqtt_request_cb2, ctx);
+    }
+    else
+    {
+        xiaozhi_ui_chat_status("mqtt is not connected");
+        xiaozhi_ui_chat_output("请重启连接");
+    }
+    UNLOCK_TCPIP_CORE(); 
     rt_sem_take(ctx->sem, 5000);
 }
 
@@ -470,9 +530,10 @@ mqtt_client_t *mqtt_xiaozhi(xiaozhi_context_t *ctx)
     info->client_id = ctx->client_id;
     info->client_user = ctx->username;
     info->client_pass = ctx->password;
-    info->keep_alive = 120;
-
+    info->keep_alive = 90;
+    LOCK_TCPIP_CORE();
     err = dns_gethostbyname(ctx->endpoint, &ctx->mqtt_addr, mqtt_found_callback, ctx);
+    UNLOCK_TCPIP_CORE();
     if (err != ERR_OK && err != ERR_INPROGRESS)
     {
         rt_kprintf("Coud not find %s, please check PAN connection\n", ctx->endpoint);
@@ -483,11 +544,15 @@ mqtt_client_t *mqtt_xiaozhi(xiaozhi_context_t *ctx)
         g_state = kDeviceStateConnecting;
         // TODO free config when finish
         info->tls_config = altcp_tls_create_config_client(NULL, 0);
+        LOCK_TCPIP_CORE();
         mqtt_client_connect(&(ctx->clnt), &(ctx->mqtt_addr), LWIP_IANA_PORT_SECURE_MQTT, my_mqtt_connection_cb, ctx, &ctx->info);
+        UNLOCK_TCPIP_CORE();
         if (RT_EOK == rt_sem_take(ctx->sem, 10000))
         {
             g_state = kDeviceStateIdle;
+            LOCK_TCPIP_CORE();
             //ctx->info.tls_config = altcp_tls_create_config_client(NULL, 0);
+            UNLOCK_TCPIP_CORE();
             mqtt_hello(ctx);
         }
         else
@@ -645,8 +710,11 @@ __exit:
 
     /* 关闭会话 */
     if (session != RT_NULL)
+    {
+        LOCK_TCPIP_CORE();
         webclient_close(session);
-
+        UNLOCK_TCPIP_CORE(); 
+    }
     if (ota_formatted)
     {
         rt_free(ota_formatted);
@@ -665,10 +733,14 @@ void xiaozhi(int argc, char **argv)
 
         if (g_xz_context.info.tls_config)
         {
+            LOCK_TCPIP_CORE();  
             mqtt_disconnect(&(g_xz_context.clnt));
+            UNLOCK_TCPIP_CORE();
             if (g_xz_context.info.tls_config)
             {
+                LOCK_TCPIP_CORE();
                 altcp_tls_free_config(g_xz_context.info.tls_config);
+                UNLOCK_TCPIP_CORE();
                 g_xz_context.info.tls_config = NULL;
             }
         }

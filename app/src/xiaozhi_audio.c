@@ -48,6 +48,7 @@
 #include "lwip/apps/mqtt_priv.h"
 #include "lwip/apps/mqtt.h"
 #include "lwip/udp.h"
+#include "lwip/tcpip.h"
 #include "xiaozhi.h"
 #include "bf0_hal.h"
 #include "button.h"
@@ -146,7 +147,9 @@ void xz_audio_send(uint8_t *data, int len)
         memcpy(payload, nonce, sizeof(nonce));
         payload += sizeof(nonce);
         HAL_AES_run(AES_ENC, data, payload, len);
+        LOCK_TCPIP_CORE();
         udp_sendto(udp_pcb, pbuf, &(g_xz_context.udp_addr), g_xz_context.port);
+        UNLOCK_TCPIP_CORE();
         pbuf_free(pbuf);
     }
 }
@@ -250,22 +253,46 @@ static void xz_button_event_handler(int32_t pin, button_action_t action)
 {
     rt_kprintf("button(%d) %d:", pin, action);
 
-    if (action == BUTTON_PRESSED)
-    {
-        rt_kprintf("pressed\r\n");
-        if (g_state == kDeviceStateSpeaking)
-            mqtt_speak_abort(&g_xz_context, kAbortReasonWakeWordDetected);
-        mqtt_listen_start(&g_xz_context, kListeningModeAutoStop);
-        xiaozhi_ui_chat_status("\u8046\u542c\u4e2d...");
-        xz_mic(1);
-    }
-    else if (action == BUTTON_RELEASED)
-    {
-        rt_kprintf("released\r\n");
-        xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
-        xz_mic(0);
-        mqtt_listen_stop(&g_xz_context);
-    }
+    if (g_state == kDeviceStateUnknown)//goodby唤醒
+        {
+            xiaozhi_ui_chat_status("\u5524\u9192\u4e2d...");
+            mqtt_hello(&g_xz_context);
+            if (action == BUTTON_PRESSED)
+            {
+                rt_kprintf("pressed\r\n");
+                if (g_state == kDeviceStateSpeaking)
+                    mqtt_speak_abort(&g_xz_context, kAbortReasonWakeWordDetected);
+                mqtt_listen_start(&g_xz_context, kListeningModeAutoStop);
+                xiaozhi_ui_chat_status("\u8046\u542c\u4e2d...");
+                xz_mic(1);
+            }
+            else if (action == BUTTON_RELEASED)
+            {
+                rt_kprintf("released\r\n");
+                xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
+                xz_mic(0);
+                mqtt_listen_stop(&g_xz_context);
+            }   
+        }
+        else
+        {
+            if (action == BUTTON_PRESSED)
+            {
+                rt_kprintf("pressed\r\n");
+                if (g_state == kDeviceStateSpeaking)
+                    mqtt_speak_abort(&g_xz_context, kAbortReasonWakeWordDetected);
+                mqtt_listen_start(&g_xz_context, kListeningModeAutoStop);
+                xiaozhi_ui_chat_status("\u8046\u542c\u4e2d...");
+                xz_mic(1);
+            }
+            else if (action == BUTTON_RELEASED)
+            {
+                rt_kprintf("released\r\n");
+                xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
+                xz_mic(0);
+                mqtt_listen_stop(&g_xz_context);
+            }   
+        }
 }
 
 

@@ -65,7 +65,7 @@ typedef struct
 } xiaozhi_context_t;
 
 extern xiaozhi_context_t g_xz_context;
-
+void mqtt_hello(xiaozhi_context_t *ctx);
 void mqtt_listen_start(xiaozhi_context_t *ctx, int mode);
 void mqtt_listen_stop(xiaozhi_context_t *ctx);
 void mqtt_speak_abort(xiaozhi_context_t *ctx, int reason);
