@@ -303,27 +303,27 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags
         return;
     }
 
-    char *type = my_json_string(root, "type");
+    char *type = cJSON_GetObjectItem(root, "type")->valuestring;
     if (strcmp(type, "hello") == 0)
     {
         cJSON *udp = cJSON_GetObjectItem(root, "udp");
-        char *server = my_json_string(udp, "server");
-        char *port = my_json_string(udp, "port");
-        char *key = my_json_string(udp, "key");
-        char *nonce = my_json_string(udp, "nonce");
+        char *server = cJSON_GetObjectItem(udp, "server")->valuestring;        
+        int port = cJSON_GetObjectItem(udp, "port")->valueint;
+        char *key = cJSON_GetObjectItem(udp, "key")->valuestring;
+        char *nonce = cJSON_GetObjectItem(udp, "nonce")->valuestring;
 
         ip4addr_aton(server, &(ctx->udp_addr));
-        ctx->port = atoi(port);
+        ctx->port = port;
         hex2data(key, ctx->key, 16);
         hex2data(nonce, ctx->nonce, 16);
 
         cJSON *audio_param = cJSON_GetObjectItem(root, "audio_params");
-        char *sample_rate = my_json_string(audio_param, "sample_rate");
-        char *duration = my_json_string(audio_param, "duration");
+        char *sample_rate = cJSON_GetObjectItem(audio_param, "sample_rate")->valuestring;
+        char *duration = cJSON_GetObjectItem(audio_param, "duration")->valuestring;
         ctx->sample_rate = atoi(sample_rate);
         ctx->frame_duration = atoi(duration);
-
-        char *session_id = my_json_string(root, "session_id");
+    
+        char *session_id = cJSON_GetObjectItem(root, "session_id")->valuestring;
         strncpy(ctx->session_id, session_id, 9);
         g_state = kDeviceStateIdle;
         xz_audio_init();
@@ -343,8 +343,7 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags
     }
     else if (strcmp(type, "tts") == 0)
     {
-        char *state = my_json_string(root, "state");
-
+        char *state = cJSON_GetObjectItem(root, "state")->valuestring;
         if (strcmp(state, "start") == 0)
         {
             if (g_state == kDeviceStateIdle || g_state == kDeviceStateListening)
@@ -368,17 +367,16 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags
         }
         else if (strcmp(state, "sentence_start") == 0)
         {
-            char *txt = my_json_string(root, "text");
-            rt_kputs(txt);
-            xiaozhi_ui_chat_output(txt);
+            rt_kputs(cJSON_GetObjectItem(root, "text")->valuestring);
+            xiaozhi_ui_chat_output(cJSON_GetObjectItem(root, "text")->valuestring);
             xiaozhi_ui_chat_status("\u8bb2\u8bdd\u4e2d...");
+            
         }
     }
     else if (strcmp(type, "llm") == 0)// {"type":"llm", "text": "😊", "emotion": "smile"}
     {
-        char *txt = my_json_string(root, "emotion");
-        rt_kputs(txt);
-        xiaozhi_ui_update_emoji(txt);
+        rt_kputs(cJSON_GetObjectItem(root, "emotion")->valuestring);
+        xiaozhi_ui_update_emoji(cJSON_GetObjectItem(root, "emotion")->valuestring);
         xiaozhi_ui_chat_status("\u8bb2\u8bdd\u4e2d...");
     }
     else
