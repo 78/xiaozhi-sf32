@@ -206,7 +206,7 @@ void xz_ws_audio_init()
 {
     rt_kprintf("xz_audio_init\n");
     audio_server_set_private_volume(AUDIO_TYPE_LOCAL_MUSIC, 6);//设置音量
-    xz_audio_decoder_encoder_open(1);//打开音频解码器和编码器
+    xz_audio_decoder_encoder_open(0);//打开音频解码器和编码器
     xz_button_init();
 }
 
