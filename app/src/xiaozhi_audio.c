@@ -248,7 +248,7 @@ void xz_speaker(int on)
 
 }
 
-
+#if 0
 static void xz_button_event_handler(int32_t pin, button_action_t action)
 {
     rt_kprintf("button(%d) %d:", pin, action);
@@ -334,7 +334,7 @@ void xz_audio_init()
     g_xz_context.remote_sequence = 0;
     udp_recv(udp_pcb, xz_udp_recv, NULL);
 }
-
+#endif
 static void audio_write_and_wait(xz_audio_t *thiz, uint8_t *data, uint32_t data_len)
 {
     int ret;
@@ -541,27 +541,49 @@ void xz_speaker_close(xz_audio_t *thiz)
     }
 }
 
+/**
+ * @brief 打开音频解码器和编码器
+ * 
+ * 该函数负责初始化音频处理模块，包括事件创建、队列初始化、线程创建等
+ * 如果模块尚未初始化，则根据参数决定是否使用WebSocket，并准备音频处理线程
+ * 
+ * @param is_websocket 指示是否使用WebSocket的标志
+ */
 void xz_audio_decoder_encoder_open(uint8_t is_websocket)
 {
+    // 获取音频处理模块的实例
     xz_audio_t *thiz = &xz_audio;
+
+    // 检查模块是否已经初始化，避免重复初始化
     if (!thiz->inited)
     {
+        // 根据参数设置是否使用WebSocket
         thiz->is_websocket = is_websocket;
+
+        // 创建事件，用于音频处理中的同步
         thiz->event = rt_event_create("xzaudio", RT_IPC_FLAG_FIFO);
         RT_ASSERT(thiz->event);
+
+        // 初始化空闲和忙状态的解码队列
         rt_slist_init(&thiz->downlink_decode_idle);
         rt_slist_init(&thiz->downlink_decode_busy);
+
+        // 为下行链路解码队列分配内存
         for (int i = 0; i < XZ_DOWNLINK_QUEUE_NUM; i++)
         {
             thiz->downlink_queue[i].size = 256;
             thiz->downlink_queue[i].data = rt_malloc(thiz->downlink_queue[i].size);
             RT_ASSERT(thiz->downlink_queue[i].data);
+
+            // 将新分配的队列节点添加到空闲队列中
             rt_slist_append(&thiz->downlink_decode_idle, &thiz->downlink_queue[i].node);
         }
 
+        // 创建用于编码输入的环形缓冲区
         thiz->rb_opus_encode_input  = rt_ringbuffer_create(XZ_MIC_FRAME_LEN * 2); // two frame
         RT_ASSERT(thiz->rb_opus_encode_input);
 
+        // 初始化音频处理线程
         rt_err_t err;
         err = rt_thread_init(&thiz->thread,
                              XZ_THREAD_NAME,
@@ -572,7 +594,10 @@ void xz_audio_decoder_encoder_open(uint8_t is_websocket)
                              RT_THREAD_PRIORITY_MIDDLE + RT_THREAD_PRIORITY_HIGHER,
                              RT_THREAD_TICK_DEFAULT);
 
+        // 启动音频处理线程
         rt_thread_startup(&thiz->thread);
+
+        // 标记模块已初始化
         thiz->inited = 1;
     }
 }

@@ -59,6 +59,7 @@ extern void xiaozhi_ui_chat_output(char *string);
 
 extern void xiaozhi_ui_task(void *args);
 extern void xiaozhi(int argc, char **argv);
+extern void xiaozhi2(int argc, char **argv);
 
 /* Common functions for RT-Thread based platform -----------------------------------------------*/
 /**
@@ -300,7 +301,7 @@ int main(void)
             xiaozhi_ui_update_emoji("neutral");
 
             rt_thread_mdelay(2000);
-            xiaozhi(0, NULL); //Start Xiaozhi
+            xiaozhi2(0, NULL); //Start Xiaozhi
         }
     }
     return 0;
