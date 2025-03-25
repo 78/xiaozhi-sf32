@@ -129,6 +129,7 @@ void xz_mic_close(xz_audio_t *thiz);
 static void audio_write_and_wait(xz_audio_t *thiz, uint8_t *data, uint32_t data_len);
 
 extern void xiaozhi_ui_chat_status(char *string);
+extern void xz_audio_send_using_websocket(uint8_t *data, int len);//发送音频数据
 
 void xz_audio_send(uint8_t *data, int len)
 {
@@ -391,7 +392,8 @@ static void xz_opus_thread_entry(void *p)
                 RT_ASSERT(0);
             }
 
-            xz_audio_send(thiz->encode_out, len);
+            // xz_audio_send(thiz->encode_out, len);
+            xz_audio_send_using_websocket(thiz->encode_out, len);//发送音频数据
 
             if (rt_ringbuffer_data_len(thiz->rb_opus_encode_input) >= XZ_MIC_FRAME_LEN)
             {
@@ -587,7 +589,7 @@ void xz_audio_decoder_encoder_open(uint8_t is_websocket)
         rt_err_t err;
         err = rt_thread_init(&thiz->thread,
                              XZ_THREAD_NAME,
-                             xz_opus_thread_entry,
+                             xz_opus_thread_entry,//音频处理线程入口函数
                              NULL,
                              g_xz_opus_stack,
                              sizeof(g_xz_opus_stack),
