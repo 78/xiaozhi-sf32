@@ -237,13 +237,13 @@ void parse_helLo(const u8_t *data, u16_t len)
         return;
     }
 
-    char *type = my_json_string(root, "type");
+    char *type = cJSON_GetObjectItem(root, "type")->valuestring;
     if (strcmp(type, "hello") == 0)
     {
-        char *session_id = my_json_string(root, "session_id");
+        char *session_id = cJSON_GetObjectItem(root, "session_id")->valuestring;
         cJSON *audio_param = cJSON_GetObjectItem(root, "audio_params");
-        char *sample_rate = my_json_string(audio_param, "sample_rate");
-        char *duration = my_json_string(audio_param, "duration");
+        char *sample_rate = cJSON_GetObjectItem(audio_param, "sample_rate")->valuestring;
+        char *duration = cJSON_GetObjectItem(audio_param, "duration")->valuestring;
         g_xz_ws.sample_rate = atoi(sample_rate);
         g_xz_ws.frame_duration = atoi(duration);
         strncpy(g_xz_ws.session_id, session_id, 9);
@@ -264,7 +264,7 @@ void parse_helLo(const u8_t *data, u16_t len)
     }
     else if (strcmp(type, "tts") == 0)
     {
-        char *state = my_json_string(root, "state");
+        char *state = cJSON_GetObjectItem(root, "state")->valuestring;
 
         if (strcmp(state, "start") == 0)
         {
@@ -281,7 +281,7 @@ void parse_helLo(const u8_t *data, u16_t len)
         }
         else if (strcmp(state, "sentence_start") == 0)
         {
-            char *txt = my_json_string(root, "text");
+            char *txt = cJSON_GetObjectItem(root, "text")->valuestring;
             rt_kputs(txt);
             xiaozhi_ui_chat_output(txt);
             xiaozhi_ui_chat_status("\u8bb2\u8bdd\u4e2d...");
@@ -291,6 +291,7 @@ void parse_helLo(const u8_t *data, u16_t len)
     {
         rt_kprintf("Unkown type: %s\n", type);
     }
+    cJSON_Delete(root);/*每次调用cJSON_Parse函数后，都要释放内存*/
 }
 
 void xiaozhi2(int argc, char **argv)
