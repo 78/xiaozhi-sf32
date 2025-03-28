@@ -77,6 +77,8 @@ xiaozhi_ws_t g_xz_ws;
 char mac_address_string[20];
 enum DeviceState g_state;
 static char message[256];
+char client_id_string[40];
+ALIGN(4) uint8_t g_sha256_result[32] = {0};
 const char *mode_str[] =
 {
     "auto",
@@ -92,7 +94,59 @@ static const char *hello_message = "{"
                                    "\"format\":\"opus\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":60"
                                    "}}";
 
+/**
+ * @brief Do hash , Single calculation, polling mode.
+ * @param algo HASH Algorithm type.
+ * @param raw_data Input data.
+ * @param raw_data_len Input data len.
+ * @param result Output data.
+ * @param result_len Output data len.
+ *
+ * @retval none
+ */
+void hash_run(uint8_t algo, uint8_t *raw_data, uint32_t raw_data_len,
+    uint8_t *result, uint32_t result_len)
+{
+/* Rest hash block. */
+HAL_HASH_reset();
+/* Initialize AES Hash hardware block. */
+HAL_HASH_init(NULL, algo, 0);
+/* Do hash. HAL_HASH_run will block until hash finish. */
+HAL_HASH_run(raw_data, raw_data_len, 1);
+/* Get hash result. */
+HAL_HASH_result(result);
+}
+void hex_2_asc(uint8_t n, char *str)
+{
+    uint8_t i=(n>>4);
+    if (i>=10)
+        *str= i+'a'-10;
+    else
+        *str= i+'0';
+    str++, i=n&0xf;
+    if (i>=10)
+        *str= i+'a'-10;
+    else
+        *str= i+'0';    
+}
 
+char *get_client_id()
+{    
+    if (client_id_string[0] == '\0') {
+        int i,j=0;
+        BTS2S_ETHER_ADDR   addr = bt_pan_get_mac_address(NULL);
+        hash_run(HASH_ALGO_SHA256, (uint8_t*)&addr, sizeof(addr), g_sha256_result, sizeof(g_sha256_result));
+        for (i=0;i<16;i++,j+=2) {
+            //12345678-1234-1234-1234-123456789012
+            if (i==4||i==6||i==8||i==10) {
+                client_id_string[j++]='-';
+            }                
+            hex_2_asc(g_sha256_result[i],&client_id_string[j]);
+        }
+        rt_kprintf(client_id_string);
+    }
+    return (&(client_id_string[0]));    
+}
                         
 char *get_mac_address()
 {
@@ -203,11 +257,11 @@ void reconnect_websocket() {
         rt_kprintf("close_err2=%d\n", close_err2);
         if (g_xz_ws.sem == NULL)
             g_xz_ws.sem = rt_sem_create("xz_ws", 0, RT_IPC_FLAG_FIFO);
-
+        char *Client_Id = get_client_id();
         wsock_init(&g_xz_ws.clnt, 1, 1, my_wsapp_fn);//初始化websocket,注册回调函数
         result = wsock_connect(&g_xz_ws.clnt, MAX_WSOCK_HDR_LEN, XIAOZHI_HOST, XIAOZHI_WSPATH,
                             LWIP_IANA_PORT_HTTPS, XIAOZHI_TOKEN, NULL,
-                            "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: 12345678-1234-1234-1234-123456789012\r\n", get_mac_address());
+                            "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: %s\r\n", get_mac_address(),Client_Id);
         rt_kprintf("Web socket connection %d\r\n", result);
         if (result == 0)
         {
@@ -453,10 +507,10 @@ void xiaozhi2(int argc, char **argv)
 
         
         wsock_init(&g_xz_ws.clnt, 1, 1, my_wsapp_fn);//初始化websocket,注册回调函数
-        char *mac_address = get_mac_address();
+        char *Client_Id = get_client_id();
         err = wsock_connect(&g_xz_ws.clnt, MAX_WSOCK_HDR_LEN, XIAOZHI_HOST, XIAOZHI_WSPATH,
                             LWIP_IANA_PORT_HTTPS, XIAOZHI_TOKEN, NULL,
-                            "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: %s\r\n", get_mac_address(),mac_address);
+                            "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: %s\r\n", get_mac_address(),Client_Id);
         rt_kprintf("Web socket connection %d\r\n", err);
         if (err == 0)
         {
