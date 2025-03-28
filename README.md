@@ -17,6 +17,13 @@
 ## 工具链
 参考[上手指南](https://docs.sifli.com/projects/sdk/v2.3/sf32lb52x/quickstart/get-started.html)安装工具链，本项目暂时只支持Keil 5.32编译，GCC编译还在调试中。
 
+## 获取代码
+因为仓库包含了子模块，请使用`--recursive`参数克隆仓库，参考如下命令：
+```shell
+git clone --recursive https://github.com/78/xiaozhi-sf2.git
+```
+
+
 ## 编译和烧写
 1. 打开env
 1. `cd`到`sdk`目录，执行`set_env`设置编译环境
