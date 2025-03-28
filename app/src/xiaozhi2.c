@@ -453,10 +453,10 @@ void xiaozhi2(int argc, char **argv)
 
         
         wsock_init(&g_xz_ws.clnt, 1, 1, my_wsapp_fn);//初始化websocket,注册回调函数
-
+        char *mac_address = get_mac_address();
         err = wsock_connect(&g_xz_ws.clnt, MAX_WSOCK_HDR_LEN, XIAOZHI_HOST, XIAOZHI_WSPATH,
                             LWIP_IANA_PORT_HTTPS, XIAOZHI_TOKEN, NULL,
-                            "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: 12345678-1234-1234-1234-123456789012\r\n", get_mac_address());
+                            "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: %s\r\n", get_mac_address(),mac_address);
         rt_kprintf("Web socket connection %d\r\n", err);
         if (err == 0)
         {
@@ -484,7 +484,7 @@ void xiaozhi2(int argc, char **argv)
         }
         else
         {
-            rt_kprintf("Waiting internet ready(%d)... \r\n", retry);
+            rt_kprintf("Waiting internet ready(%d)... \r\n");
             rt_thread_mdelay(1000);
         }
     }

@@ -85,7 +85,7 @@
         "regions": [
             {
                 "offset": "0x00000000", 
-                "max_size": "0x0006BC00", 
+                "max_size": "0x0007FC00", 
                 "tags": [
                     "HCPU_RAM_DATA"
                 ]
@@ -112,8 +112,8 @@
                 ]
             }, 
             {
-                "offset": "0x0006BC00", 
-                "max_size": "0x00014000", 
+                "offset": "0x0007FC00", 
+                "max_size": "0x00000000", 
                 "tags": [
                     "HCPU_RO_DATA"
                 ]
