@@ -13,7 +13,7 @@ extern const unsigned char droid_sans_fallback_font[];
 extern const int droid_sans_fallback_font_size;
 
 extern const lv_image_dsc_t color_neutral;
-extern const lv_image_dsc_t color_happy2;
+extern const lv_image_dsc_t color_happy;
 extern const lv_image_dsc_t color_laughing;
 extern const lv_image_dsc_t color_funny;
 extern const lv_image_dsc_t color_sad;
@@ -67,18 +67,7 @@ static lv_obj_t *global_img21;
 static lv_obj_t *global_img_ble;
 static lv_obj_t *global_img_ble_close;
 
-static lv_obj_t *global_label0;
 
-void lv_btn_event_cb(lv_event_t *event)
-{
-    lv_event_code_t code = lv_event_get_code(event);
-    lv_obj_t *obj = lv_event_get_target(event);
-    if (code == LV_EVENT_CLICKED) {
-        // Button was clicked
-        rt_kprintf("Button clicked\n");
-    }
-
-}
 void set_position_by_percentage(lv_obj_t * obj, int x_percent, int y_percent) {
     // Gets the width and height of the screen resolution
     int screen_width = lv_disp_get_hor_res(NULL);
@@ -95,21 +84,6 @@ void set_position_by_percentage(lv_obj_t * obj, int x_percent, int y_percent) {
 rt_err_t xiaozhi_ui_obj_init(void)
 {
     
-
-    lv_obj_t *button = lv_btn_create(lv_screen_active());
-    lv_obj_add_style(button, &style, 0);
-    lv_obj_set_size(button, 100, 50);
-    // lv_obj_align(button, LV_ALIGN_TOP_LEFT, 20, 20);//top right
-    lv_obj_set_pos(button, 20, 20);
-    lv_obj_add_event_cb(button, lv_btn_event_cb, LV_EVENT_CLICKED, NULL);
-
-    global_label0 = lv_label_create(button);
-    lv_label_set_text(global_label0, "pan");
-    lv_obj_center(global_label0);
-
-
-
-
 
     global_label1 = lv_label_create(lv_screen_active());//top text
 
@@ -130,7 +104,7 @@ rt_err_t xiaozhi_ui_obj_init(void)
 
 
     LV_IMAGE_DECLARE(color_neutral);
-    LV_IMAGE_DECLARE(color_happy2);
+    LV_IMAGE_DECLARE(color_happy);
     LV_IMAGE_DECLARE(color_laughing);
     LV_IMAGE_DECLARE(color_funny);
     LV_IMAGE_DECLARE(color_sad);
@@ -160,7 +134,7 @@ rt_err_t xiaozhi_ui_obj_init(void)
     lv_obj_add_flag(global_img1, LV_OBJ_FLAG_HIDDEN);//hidden
 
     global_img2 = lv_img_create(lv_screen_active());
-    lv_img_set_src(global_img2, &color_happy2);
+    lv_img_set_src(global_img2, &color_happy);
     lv_obj_align(global_img2, LV_ALIGN_CENTER, 0, 0);
     lv_obj_add_flag(global_img2, LV_OBJ_FLAG_HIDDEN);//hidden
 
