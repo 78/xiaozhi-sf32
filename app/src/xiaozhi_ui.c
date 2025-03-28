@@ -97,7 +97,7 @@ rt_err_t xiaozhi_ui_obj_init(void)
     lv_obj_add_style(global_label2, &style, 0);
     lv_obj_set_width(global_label2, LV_HOR_RES_MAX);
     lv_obj_set_style_text_align(global_label2,LV_TEXT_ALIGN_CENTER, 0);
-    set_position_by_percentage(global_label2, 0, 80);
+    set_position_by_percentage(global_label2, 0, 75);
 
 
     LV_IMAGE_DECLARE(color_neutral);

@@ -442,8 +442,8 @@ void xiaozhi2(int argc, char **argv)
 {
 
     err_t err;
-    uint32_t retry = 2;
-    while (retry-- > 0)
+
+    while (1)
     {
 
         err_t close_err = wsock_close(&g_xz_ws.clnt, WSOCK_RESULT_LOCAL_ABORT, ERR_OK);
