@@ -116,14 +116,41 @@ void ws_send_listen_start(void *ws, char *session_id, enum ListeningMode mode)
     //rt_kputs("\r\n");
     //rt_kputs(message);
     //rt_kputs("\r\n");
-    wsock_write((wsock_state_t *)ws, message, strlen(message), OPCODE_TEXT);
+    if (g_xz_ws.is_connected == 1) 
+    {
+        wsock_write((wsock_state_t *)ws, message, strlen(message), OPCODE_TEXT);
+    }
+    else
+    {
+        rt_kprintf("websocket is not connected\n");
+    }
+    
 }
 
 void ws_send_listen_stop(void *ws, char *session_id)
 {
+    rt_kprintf("listen stop\n");
     rt_snprintf(message, 256, "{\"session_id\":\"%s\",\"type\":\"listen\",\"state\":\"stop\"}",
                 session_id);
-    wsock_write((wsock_state_t *)ws, message, strlen(message), OPCODE_TEXT);
+    if (g_xz_ws.is_connected == 1) 
+    {
+        wsock_write((wsock_state_t *)ws, message, strlen(message), OPCODE_TEXT);
+    }
+    else
+    {
+        rt_kprintf("websocket is not connected\n");
+    }
+}
+void ws_send_hello(void *ws)
+{
+    if (g_xz_ws.is_connected == 1) 
+    {
+        wsock_write((wsock_state_t *)ws, hello_message, strlen(hello_message), OPCODE_TEXT);
+    }
+    else
+    {
+        rt_kprintf("websocket is not connected\n");
+    }
 }
 void xz_audio_send_using_websocket(uint8_t *data, int len)
 {
@@ -135,6 +162,7 @@ err_t my_wsapp_fn(int code, char *buf, size_t len)
 {
     if (code == WS_CONNECT)
     {
+        rt_kprintf("websocket connected\n");
         int status = (uint16_t)(uint32_t)buf;
         if (status == 101)  // wss setup success
         {
@@ -146,7 +174,11 @@ err_t my_wsapp_fn(int code, char *buf, size_t len)
     {
         rt_kprintf("WebSocket closed\n");
         g_xz_ws.is_connected = 0;
-        rt_sem_release(g_xz_ws.sem);
+        xiaozhi_ui_chat_status("休眠中...");
+        xiaozhi_ui_chat_output("请按键唤醒");
+        xiaozhi_ui_update_emoji("sleepy");
+
+        
     }
     else if (code == WS_TEXT)
     {
@@ -160,24 +192,109 @@ err_t my_wsapp_fn(int code, char *buf, size_t len)
     }
     return 0;
 }
+void xiaozhi2(int argc, char **argv);
+void reconnect_websocket() {
 
+    err_t result;
+    uint32_t retry = 10;
+    while (retry-- > 0)
+    {
+        err_t close_err2 = wsock_close(&g_xz_ws.clnt, WSOCK_RESULT_LOCAL_ABORT, ERR_OK);
+        rt_kprintf("close_err2=%d\n", close_err2);
+        if (g_xz_ws.sem == NULL)
+            g_xz_ws.sem = rt_sem_create("xz_ws", 0, RT_IPC_FLAG_FIFO);
+
+        wsock_init(&g_xz_ws.clnt, 1, 1, my_wsapp_fn);//初始化websocket,注册回调函数
+        result = wsock_connect(&g_xz_ws.clnt, MAX_WSOCK_HDR_LEN, XIAOZHI_HOST, XIAOZHI_WSPATH,
+                            LWIP_IANA_PORT_HTTPS, XIAOZHI_TOKEN, NULL,
+                            "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: 12345678-1234-1234-1234-123456789012\r\n", get_mac_address());
+        rt_kprintf("Web socket connection %d\r\n", result);
+        if (result == 0)
+        {
+            rt_kprintf("result_g_xz_ws.sem = 0%d\n",g_xz_ws.sem->value);
+            
+            if (RT_EOK == rt_sem_take(g_xz_ws.sem, 5000))
+            {
+                rt_kprintf("g_xz_ws.is_connected = %d\n", g_xz_ws.is_connected);
+                if (g_xz_ws.is_connected)
+                {
+                    result = wsock_write(&g_xz_ws.clnt, hello_message, strlen(hello_message), OPCODE_TEXT);
+                    rt_kprintf("Web socket write %d\r\n", result);
+
+                    break;
+                }
+                else
+                {
+                    rt_kprintf("result = wsock_write_Web socket disconnected\r\n");
+                }
+            }
+            else
+            {
+                rt_kprintf("Web socket connected timeout\r\n");
+            }
+        }
+        else
+        {
+            rt_kprintf("Waiting internet ready(%d)... \r\n", retry);
+            rt_thread_mdelay(1000);
+        }
+    }
+}
+extern rt_mailbox_t g_bt_app_mb;
+#define WEBSOCKET_RECONNECT 3
 static void xz_button_event_handler(int32_t pin, button_action_t action)
 {
     rt_kprintf("button(%d) %d:", pin, action);
+    rt_kprintf("g_state = %d\n", g_state);
 
+    if (!g_xz_ws.is_connected)//唤醒  stop ? goodbye
+    {
+        rt_kprintf("please button11 attempting to reconnect WebSocket\n\r\n");
+        xiaozhi_ui_chat_status("请按唤醒键...");
+        xiaozhi_ui_chat_output("请按唤醒键重连！");
+        xiaozhi_ui_update_emoji("embarrassed");
+
+    }
+    else
+    {
+        if (action == BUTTON_PRESSED)
+        {
+            rt_kprintf("pressed\r\n");
+            ws_send_listen_start(&g_xz_ws.clnt, g_xz_ws.session_id, kListeningModeAutoStop);//发送开始监听
+            xiaozhi_ui_chat_status("\u8046\u542c\u4e2d...");
+            xz_mic(1);
+        }
+        else if (action == BUTTON_RELEASED)
+        {
+            rt_kprintf("released\r\n");
+            xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
+            ws_send_listen_stop(&g_xz_ws.clnt, g_xz_ws.session_id);
+            xz_mic(0);
+        }
+    }
+
+}
+static void xz_button_event_handler2(int32_t pin, button_action_t action)
+{
+    rt_kprintf("button(%d) %d:", pin, action);
+    
     if (action == BUTTON_PRESSED)
     {
         rt_kprintf("pressed\r\n");
-        ws_send_listen_start(&g_xz_ws.clnt, g_xz_ws.session_id, kListeningModeAutoStop);//发送开始监听
-        xiaozhi_ui_chat_status("\u8046\u542c\u4e2d...");
-        xz_mic(1);
+        if (!g_xz_ws.is_connected)//唤醒重连websocket
+        {
+            rt_kprintf("handler2 attempting to reconnect WebSocket\n\r\n");
+            xiaozhi_ui_chat_status("唤醒中...");
+            xiaozhi_ui_chat_output("正在唤醒!");
+            xiaozhi_ui_update_emoji("relaxed");
+            rt_mb_send(g_bt_app_mb, WEBSOCKET_RECONNECT);
+         
+        }
     }
     else if (action == BUTTON_RELEASED)
     {
         rt_kprintf("released\r\n");
-        xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
-        ws_send_listen_stop(&g_xz_ws.clnt, g_xz_ws.session_id);
-        xz_mic(0);
+        
     }
 }
 
@@ -200,7 +317,24 @@ static void xz_button_init(void)
         initialized = 1;
     }
 }
+static void xz_button_init2(void)
+{
+    static int initialized = 0;
 
+    if (initialized == 0)
+    {
+        button_cfg_t cfg;
+        cfg.pin = BSP_KEY2_PIN;
+
+        cfg.active_state = BSP_KEY2_ACTIVE_HIGH;
+        cfg.mode = PIN_MODE_INPUT;
+        cfg.button_handler = xz_button_event_handler2;
+        int32_t id = button_init(&cfg);
+        RT_ASSERT(id >= 0);
+        RT_ASSERT(SF_EOK == button_enable(id));
+        initialized = 1;
+    }
+}
 
 void xz_ws_audio_init()
 {
@@ -208,6 +342,7 @@ void xz_ws_audio_init()
     audio_server_set_private_volume(AUDIO_TYPE_LOCAL_MUSIC, 6);//设置音量
     xz_audio_decoder_encoder_open(0);//打开音频解码器和编码器
     xz_button_init();
+    xz_button_init2();
 }
 
 
@@ -249,8 +384,8 @@ void parse_helLo(const u8_t *data, u16_t len)
         strncpy(g_xz_ws.session_id, session_id, 9);
         g_state = kDeviceStateIdle;
         xz_ws_audio_init();//初始化音频
-        xiaozhi_ui_chat_status("rev hello");
-        xiaozhi_ui_chat_output("hello..");
+        xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
+        xiaozhi_ui_chat_output("Xiaozhi 已连接!");
         xiaozhi_ui_update_emoji("neutral");
 
     }
@@ -258,9 +393,9 @@ void parse_helLo(const u8_t *data, u16_t len)
     {
         g_state = kDeviceStateUnknown;
         rt_kprintf("session ended\n");
-        xiaozhi_ui_chat_status("rev goodbye");
-        xiaozhi_ui_chat_output("goodbye..");
-        xiaozhi_ui_update_emoji("neutral");
+        xiaozhi_ui_chat_status("disconnected");
+        xiaozhi_ui_chat_output("goodbye! 等待唤醒...");
+        xiaozhi_ui_update_emoji("sleep");
     }
     else if (strcmp(type, "tts") == 0)
     {
@@ -278,6 +413,8 @@ void parse_helLo(const u8_t *data, u16_t len)
         {
             g_state = kDeviceStateIdle;
             xz_speaker(0);//关闭扬声器
+            xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
+            xiaozhi_ui_chat_output("Xiaozhi 已停止说话");
         }
         else if (strcmp(state, "sentence_start") == 0)
         {
@@ -287,6 +424,13 @@ void parse_helLo(const u8_t *data, u16_t len)
             xiaozhi_ui_chat_status("\u8bb2\u8bdd\u4e2d...");
         }
     }
+    else if (strcmp(type, "llm") == 0)
+    {
+        rt_kputs(cJSON_GetObjectItem(root, "emotion")->valuestring);
+        xiaozhi_ui_update_emoji(cJSON_GetObjectItem(root, "emotion")->valuestring);
+        xiaozhi_ui_chat_status("\u8bb2\u8bdd\u4e2d...");
+    }
+    
     else
     {
         rt_kprintf("Unkown type: %s\n", type);
@@ -298,32 +442,50 @@ void xiaozhi2(int argc, char **argv)
 {
 
     err_t err;
-
-    if (g_xz_ws.sem == NULL)
-        g_xz_ws.sem = rt_sem_create("xz_ws", 0, RT_IPC_FLAG_FIFO);
-
-    wsock_init(&g_xz_ws.clnt, 1, 1, my_wsapp_fn);//初始化websocket,注册回调函数
-    err = wsock_connect(&g_xz_ws.clnt, MAX_WSOCK_HDR_LEN, XIAOZHI_HOST, XIAOZHI_WSPATH,
-                        LWIP_IANA_PORT_HTTPS, XIAOZHI_TOKEN, NULL,
-                        "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: 12345678-1234-1234-1234-123456789012\r\n", get_mac_address());
-    rt_kprintf("Web socket connection %d\r\n", err);
-    if (err == 0)
+    uint32_t retry = 2;
+    while (retry-- > 0)
     {
-        if (RT_EOK == rt_sem_take(g_xz_ws.sem, 5000))
+
+        err_t close_err = wsock_close(&g_xz_ws.clnt, WSOCK_RESULT_LOCAL_ABORT, ERR_OK);
+        rt_kprintf("close_err:%d\n", close_err);
+        if (g_xz_ws.sem == NULL)
+            g_xz_ws.sem = rt_sem_create("xz_ws", 0, RT_IPC_FLAG_FIFO);
+
+        
+        wsock_init(&g_xz_ws.clnt, 1, 1, my_wsapp_fn);//初始化websocket,注册回调函数
+
+        err = wsock_connect(&g_xz_ws.clnt, MAX_WSOCK_HDR_LEN, XIAOZHI_HOST, XIAOZHI_WSPATH,
+                            LWIP_IANA_PORT_HTTPS, XIAOZHI_TOKEN, NULL,
+                            "Protocol-Version: 1\r\nDevice-Id: %s\r\nClient-Id: 12345678-1234-1234-1234-123456789012\r\n", get_mac_address());
+        rt_kprintf("Web socket connection %d\r\n", err);
+        if (err == 0)
         {
-            if (g_xz_ws.is_connected)
+            rt_kprintf("err = 0\n");
+            if (RT_EOK == rt_sem_take(g_xz_ws.sem, 5000))
             {
-                err = wsock_write(&g_xz_ws.clnt, hello_message, strlen(hello_message), OPCODE_TEXT);
-                rt_kprintf("Web socket write %d\r\n", err);
+                rt_kprintf("g_xz_ws.is_connected = %d\n", g_xz_ws.is_connected);
+                if (g_xz_ws.is_connected)
+                {
+                    err = wsock_write(&g_xz_ws.clnt, hello_message, strlen(hello_message), OPCODE_TEXT);
+                    rt_kprintf("Web socket write %d\r\n", err);
+
+
+                    break;
+                }
+                else
+                {
+                    rt_kprintf("err = wsock_write_Web socket disconnected\r\n");
+                }
             }
             else
             {
-                rt_kprintf("Web socket disconnected\r\n");
+                rt_kprintf("Web socket connected timeout\r\n");
             }
         }
         else
         {
-            rt_kprintf("Web socket connected timeout\r\n");
+            rt_kprintf("Waiting internet ready(%d)... \r\n", retry);
+            rt_thread_mdelay(1000);
         }
     }
 }
