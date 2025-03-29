@@ -208,8 +208,13 @@ void ws_send_hello(void *ws)
 }
 void xz_audio_send_using_websocket(uint8_t *data, int len)
 {
-    err_t err = wsock_write(&g_xz_ws.clnt, data, len, OPCODE_BINARY);
-    rt_kprintf("send audio = %d len=%d\n", err, len);
+    if (g_xz_ws.is_connected == 1) 
+    {   
+        err_t err = wsock_write(&g_xz_ws.clnt, data, len, OPCODE_BINARY);
+        rt_kprintf("send audio = %d len=%d\n", err, len);
+    }
+    else
+        rt_kprintf("Websocket disconnected\n");
 }
 
 err_t my_wsapp_fn(int code, char *buf, size_t len)
@@ -519,7 +524,7 @@ void xiaozhi2(int argc, char **argv)
             {
                 rt_kprintf("g_xz_ws.is_connected = %d\n", g_xz_ws.is_connected);
                 if (g_xz_ws.is_connected)
-                {
+                {                 
                     err = wsock_write(&g_xz_ws.clnt, hello_message, strlen(hello_message), OPCODE_TEXT);
                     rt_kprintf("Web socket write %d\r\n", err);
 
