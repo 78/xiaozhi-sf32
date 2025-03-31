@@ -79,6 +79,7 @@ enum DeviceState g_state;
 static char message[256];
 char client_id_string[40];
 ALIGN(4) uint8_t g_sha256_result[32] = {0};
+extern BOOL g_pan_connected;
 const char *mode_str[] =
 {
     "auto",
@@ -253,6 +254,13 @@ err_t my_wsapp_fn(int code, char *buf, size_t len)
 }
 void xiaozhi2(int argc, char **argv);
 void reconnect_websocket() {
+
+    if (!g_pan_connected) {
+        xiaozhi_ui_chat_status("请开启网络共享");
+        xiaozhi_ui_chat_output("请在手机上开启网络共享后重新发起连接");
+        xiaozhi_ui_update_emoji("embarrassed");
+        return;
+    }
 
     err_t result;
     uint32_t retry = 10;
@@ -499,7 +507,12 @@ void parse_helLo(const u8_t *data, u16_t len)
 
 void xiaozhi2(int argc, char **argv)
 {
-
+    if (!g_pan_connected) {
+        xiaozhi_ui_chat_status("请开启网络共享");
+        xiaozhi_ui_chat_output("请在手机上开启网络共享后重新发起连接");
+        xiaozhi_ui_update_emoji("embarrassed");
+        return;
+    }
     err_t err;
 
     while (1)

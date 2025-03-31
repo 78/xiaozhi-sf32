@@ -94,7 +94,7 @@
  } bt_app_t;
  static bt_app_t g_bt_app_env;
  rt_mailbox_t g_bt_app_mb;
- 
+BOOL g_pan_connected = FALSE;
  void bt_app_connect_pan_timeout_handle(void *parameter)
  {
      LOG_I("bt_app_connect_pan_timeout_handle %x, %d", g_bt_app_mb, g_bt_app_env.bt_connected);
@@ -217,6 +217,7 @@
                      rt_timer_stop(g_bt_app_env.pan_connect_timer);
                  }
                  rt_mb_send(g_bt_app_mb, BT_APP_CONNECT_PAN_SUCCESS);
+                 g_pan_connected = TRUE;  // 更新PAN连接状态
  
              }
              break;
@@ -226,7 +227,7 @@
                  xiaozhi_ui_chat_output("pan disconnect with remote device");
                  xiaozhi_ui_update_ble("close");
                  LOG_I("pan disconnect with remote device\n");
- 
+                 g_pan_connected = FALSE;  // 更新PAN连接状态
              }
              break;
          default:
@@ -240,7 +241,7 @@
  
  uint32_t bt_get_class_of_device()
  {
-     return (uint32_t)BT_SRVCLS_NETWORK | BT_DEVCLS_LAP | BT_LAP_FULLY;
+    return (uint32_t)BT_SRVCLS_NETWORK | BT_DEVCLS_PERIPHERAL | BT_PERIPHERAL_REMCONTROL;
  }
  
  
