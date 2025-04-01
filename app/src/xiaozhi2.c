@@ -287,7 +287,6 @@ void reconnect_websocket() {
                 {
                     result = wsock_write(&g_xz_ws.clnt, hello_message, strlen(hello_message), OPCODE_TEXT);
                     rt_kprintf("Web socket write %d\r\n", result);
-
                     break;
                 }
                 else
@@ -314,6 +313,13 @@ static void xz_button_event_handler(int32_t pin, button_action_t action)
     rt_kprintf("button(%d) %d:", pin, action);
     rt_kprintf("g_state = %d\n", g_state);
 
+    static button_action_t last_action=BUTTON_RELEASED;
+    if(last_action==action)
+    {
+        return;
+    }
+    last_action=action;
+    
     if (!g_xz_ws.is_connected)//唤醒  stop ? goodbye
     {
         rt_kprintf("please button11 attempting to reconnect WebSocket\n\r\n");
@@ -345,6 +351,13 @@ static void xz_button_event_handler2(int32_t pin, button_action_t action)
 {
     rt_kprintf("button(%d) %d:", pin, action);
     
+    static button_action_t last_action=BUTTON_RELEASED;
+    if(last_action==action)
+    {
+        return;
+    }
+    last_action=action;
+
     if (action == BUTTON_PRESSED)
     {
         rt_kprintf("pressed\r\n");
@@ -540,8 +553,6 @@ void xiaozhi2(int argc, char **argv)
                 {                 
                     err = wsock_write(&g_xz_ws.clnt, hello_message, strlen(hello_message), OPCODE_TEXT);
                     rt_kprintf("Web socket write %d\r\n", err);
-
-
                     break;
                 }
                 else
@@ -556,7 +567,7 @@ void xiaozhi2(int argc, char **argv)
         }
         else
         {
-            rt_kprintf("Waiting internet ready(%d)... \r\n");
+            rt_kprintf("Waiting internet ready... \r\n");
             rt_thread_mdelay(1000);
         }
     }
