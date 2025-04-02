@@ -15,7 +15,7 @@
 ```
 
 ## 工具链
-参考[上手指南](https://docs.sifli.com/projects/sdk/v2.3/sf32lb52x/quickstart/get-started.html)安装工具链，本项目暂时只支持Keil 5.32编译，GCC编译还在调试中。
+参考[上手指南](https://docs.sifli.com/projects/sdk/v2.3/sf32lb52x/quickstart/get-started.html)安装工具链，本项目支持Keil 5.32及Env自带的GCC编译。
 
 ## 获取代码
 因为仓库包含了子模块，请使用`--recursive`参数克隆仓库，参考如下命令：
