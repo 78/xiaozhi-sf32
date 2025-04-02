@@ -308,7 +308,7 @@ void reconnect_websocket() {
 }
 extern rt_mailbox_t g_bt_app_mb;
 #define WEBSOCKET_RECONNECT 3
-static void xz_button_event_handler(int32_t pin, button_action_t action)
+static void xz_button_event_handler(int32_t pin, button_action_t action)//Session key
 {
     rt_kprintf("button(%d) %d:", pin, action);
     rt_kprintf("g_state = %d\n", g_state);
@@ -347,7 +347,7 @@ static void xz_button_event_handler(int32_t pin, button_action_t action)
     }
 
 }
-static void xz_button_event_handler2(int32_t pin, button_action_t action)
+static void xz_button_event_handler2(int32_t pin, button_action_t action)//Wake up key
 {
     rt_kprintf("button(%d) %d:", pin, action);
     
@@ -379,7 +379,7 @@ static void xz_button_event_handler2(int32_t pin, button_action_t action)
 }
 
 
-static void xz_button_init(void)
+static void xz_button_init(void)//Session key
 {
     static int initialized = 0;
 
@@ -390,7 +390,7 @@ static void xz_button_init(void)
 
         cfg.active_state = BSP_KEY1_ACTIVE_HIGH;
         cfg.mode = PIN_MODE_INPUT;
-        cfg.button_handler = xz_button_event_handler;
+        cfg.button_handler = xz_button_event_handler2;//wakeup key
         int32_t id = button_init(&cfg);
         RT_ASSERT(id >= 0);
         RT_ASSERT(SF_EOK == button_enable(id));
@@ -408,7 +408,7 @@ static void xz_button_init2(void)
 
         cfg.active_state = BSP_KEY2_ACTIVE_HIGH;
         cfg.mode = PIN_MODE_INPUT;
-        cfg.button_handler = xz_button_event_handler2;
+        cfg.button_handler = xz_button_event_handler;//session key
         int32_t id = button_init(&cfg);
         RT_ASSERT(id >= 0);
         RT_ASSERT(SF_EOK == button_enable(id));
