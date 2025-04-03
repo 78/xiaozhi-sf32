@@ -44,6 +44,8 @@
  */
 #include <rtthread.h>
 #include "lwip/api.h"
+#include "lwip/tcpip.h"
+#include "lwip/dns.h"
 #include "lwip/apps/websocket_client.h"
 #include "lwip/apps/mqtt_priv.h"
 #include "lwip/apps/mqtt.h"
@@ -54,6 +56,7 @@
 #include <cJSON.h>
 #include "button.h"
 #include "audio_server.h"
+#include <webclient.h>
 
 #define MAX_WSOCK_HDR_LEN 512
 extern void xiaozhi_ui_update_ble(char *string);
@@ -75,6 +78,7 @@ typedef struct
 xiaozhi_context_t g_xz_context;
 xiaozhi_ws_t g_xz_ws;
 char mac_address_string[20];
+char client_id_string[40];
 enum DeviceState g_state;
 static char message[256];
 char client_id_string[40];
@@ -94,6 +98,46 @@ static const char *hello_message = "{"
                                    "\"audio_params\":{"
                                    "\"format\":\"opus\", \"sample_rate\":16000, \"channels\":1, \"frame_duration\":60"
                                    "}}";
+
+static const char *ota_version = "{\r\n "
+                                 "\"version\": 2,\r\n"
+                                 "\"flash_size\": 4194304,\r\n"
+                                 "\"psram_size\": 0,\r\n"
+                                 "\"minimum_free_heap_size\": 123456,\r\n"
+                                 "\"mac_address\": \"%s\",\r\n"
+                                 "\"uuid\": \"%s\",\r\n"
+                                 "\"chip_model_name\": \"sf32lb563\",\r\n"
+                                 "\"chip_info\": {\r\n"
+                                 "    \"model\": 1,\r\n"
+                                 "    \"cores\": 2,\r\n"
+                                 "    \"revision\": 0,\r\n"
+                                 "    \"features\": 0\r\n"
+                                 "},\r\n"
+                                 "\"application\": {\r\n"
+                                 "    \"name\": \"my-app\",\r\n"
+                                 "    \"version\": \"1.0.0\",\r\n"
+                                 "    \"compile_time\": \"2021-01-01T00:00:00Z\",\r\n"
+                                 "    \"idf_version\": \"4.2-dev\",\r\n"
+                                 "    \"elf_sha256\": \"\"\r\n"
+                                 "},\r\n"
+                                 "\"partition_table\": [\r\n"
+                                 "    {\r\n"
+                                 "        \"label\": \"app\",\r\n"
+                                 "        \"type\": 1,\r\n"
+                                 "        \"subtype\": 2,\r\n"
+                                 "        \"address\": 10000,\r\n"
+                                 "        \"size\": 100000\r\n"
+                                 "    }\r\n"
+                                 "],\r\n"
+                                 "\"ota\": {\r\n"
+                                 "    \"label\": \"ota_0\"\r\n"
+                                 "},\r\n"
+                                 "\"board\": {\r\n"
+                                 "    \"type\":\"hdk563\",\r\n"
+                                 "    \"mac\": \"%s\"\r\n"
+                                 "}\r\n"
+                                 "}\r\n"
+                                 ;
 
 /**
  * @brief Do hash , Single calculation, polling mode.
@@ -499,7 +543,14 @@ void parse_helLo(const u8_t *data, u16_t len)
         else if (strcmp(state, "sentence_start") == 0)
         {
             char *txt = cJSON_GetObjectItem(root, "text")->valuestring;
-            rt_kputs(txt);
+            // rt_kputs(txt);
+            xiaozhi_ui_chat_output(txt);
+            xiaozhi_ui_chat_status("\u8bb2\u8bdd\u4e2d...");
+        }
+        else if (strcmp(state, "sentence_end") == 0)
+        {
+            char *txt = cJSON_GetObjectItem(root, "text")->valuestring;
+            // rt_kputs(txt);
             xiaozhi_ui_chat_output(txt);
             xiaozhi_ui_chat_status("\u8bb2\u8bdd\u4e2d...");
         }
@@ -518,7 +569,136 @@ void parse_helLo(const u8_t *data, u16_t len)
     cJSON_Delete(root);/*每次调用cJSON_Parse函数后，都要释放内存*/
 }
 
-void xiaozhi2(int argc, char **argv)
+static void svr_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
+{
+    if (ipaddr != NULL)
+    {
+        rt_kprintf("DNS lookup succeeded, IP: %s\n", ipaddr_ntoa(ipaddr));
+    }
+}
+
+static int check_internet_access()
+{
+    int r = 0;
+    const char *hostname = XIAOZHI_HOST;
+    ip_addr_t addr = {0};
+
+    {
+        err_t err = dns_gethostbyname(hostname, &addr, svr_found_callback, NULL);
+        if (err != ERR_OK && err != ERR_INPROGRESS)
+        {
+            rt_kprintf("Coud not find %s, please check PAN connection\n", hostname);
+        }
+        else
+            r = 1;
+    }
+
+    return r;
+}
+
+char *get_xiaozhi()
+{
+    char *buffer = RT_NULL;
+    int resp_status;
+    struct webclient_session *session = RT_NULL;
+    char *xiaozhi_url = RT_NULL;
+    int content_length = -1, bytes_read = 0;
+    int content_pos = 0;
+
+    if (check_internet_access() == 0)
+        return buffer;
+
+    int size = strlen(ota_version) + sizeof(client_id_string) + sizeof(mac_address_string) * 2 + 16;
+    char *ota_formatted = rt_malloc(size);
+    if (!ota_formatted)
+    {
+        goto __exit;
+    }
+    rt_snprintf(ota_formatted, size, ota_version, get_mac_address(), get_client_id(), get_mac_address());
+
+    /* 为 weather_url 分配空间 */
+    xiaozhi_url = rt_calloc(1, GET_URL_LEN_MAX);
+    if (xiaozhi_url == RT_NULL)
+    {
+        rt_kprintf("No memory for xiaozhi_url!\n");
+        goto __exit;
+    }
+    /* 拼接 GET 网址 */
+    rt_snprintf(xiaozhi_url, GET_URL_LEN_MAX, GET_URI, XIAOZHI_HOST);
+
+    /* 创建会话并且设置响应的大小 */
+    session = webclient_session_create(GET_HEADER_BUFSZ);
+    if (session == RT_NULL)
+    {
+        rt_kprintf("No memory for get header!\n");
+        goto __exit;
+    }
+
+    webclient_header_fields_add(session, "Device-Id: %s \r\n", get_mac_address());
+    webclient_header_fields_add(session, "Client-Id: %s \r\n", get_client_id());
+    webclient_header_fields_add(session, "Content-Type: application/json \r\n");
+    webclient_header_fields_add(session, "Content-length: %d \r\n", strlen(ota_formatted));
+    //webclient_header_fields_add(session, "X-language:");
+
+    /* 发送 GET 请求使用默认的头部 */
+    if ((resp_status = webclient_post(session, xiaozhi_url, ota_formatted, strlen(ota_formatted))) != 200)
+    {
+        rt_kprintf("webclient Post request failed, response(%d) error.\n", resp_status);
+        //goto __exit;
+    }
+
+    /* 分配用于存放接收数据的缓冲 */
+    buffer = rt_calloc(1, GET_RESP_BUFSZ);
+    if (buffer == RT_NULL)
+    {
+        rt_kprintf("No memory for data receive buffer!\n");
+        goto __exit;
+    }
+
+    content_length = webclient_content_length_get(session);
+    if (content_length > 0)
+    {
+        do
+        {
+            bytes_read = webclient_read(session, buffer + content_pos,
+                                        content_length - content_pos > GET_RESP_BUFSZ ?
+                                        GET_RESP_BUFSZ : content_length - content_pos);
+            if (bytes_read <= 0)
+            {
+                break;
+            }
+            content_pos += bytes_read;
+        }
+        while (content_pos < content_length);
+    }
+    else
+    {
+        rt_free(buffer);
+        buffer = NULL;
+    }
+__exit:
+    /* 释放网址空间 */
+    if (xiaozhi_url != RT_NULL)
+    {
+        rt_free(xiaozhi_url);
+        xiaozhi_url = RT_NULL;
+    }
+
+    /* 关闭会话 */
+    if (session != RT_NULL)
+    {
+        LOCK_TCPIP_CORE();
+        webclient_close(session);
+        UNLOCK_TCPIP_CORE();
+    }
+    if (ota_formatted)
+    {
+        rt_free(ota_formatted);
+    }
+    return buffer;
+}
+
+void xiaozhi_ws_connect(void)
 {
     if (!g_pan_connected) {
         xiaozhi_ui_chat_status("请开启网络共享");
@@ -572,8 +752,94 @@ void xiaozhi2(int argc, char **argv)
         }
     }
 }
-MSH_CMD_EXPORT(xiaozhi2, Get Xiaozhi)
 
+
+int http_xiaozhi_data_parse(char *json_data)
+{
+    uint8_t i, j;
+    uint8_t result_array_size = 0;
+    char *endpoint;
+    char *client_id;
+    char *username;
+    char *password;
+    char *publish_topic;
+    char *session;
+    cJSON *item = NULL;
+    cJSON *root = NULL;
+
+    rt_kputs(json_data);
+    root = cJSON_Parse(json_data);   /*json_data 为MQTT的原始数据*/
+    if (!root)
+    {
+        rt_kprintf("Error before: [%s]\n", cJSON_GetErrorPtr());
+        return  -1;
+    }
+
+
+    cJSON *Presult = cJSON_GetObjectItem(root, "mqtt");  /*mqtt的键值对为数组，*/
+    result_array_size = cJSON_GetArraySize(Presult);  /*求results键值对数组中有多少个元素*/
+    item = cJSON_GetObjectItem(Presult, "endpoint");
+    endpoint = cJSON_Print(item);
+    item = cJSON_GetObjectItem(Presult, "client_id");
+    client_id = cJSON_Print(item);
+    item = cJSON_GetObjectItem(Presult, "username");
+    username = cJSON_Print(item);
+    item = cJSON_GetObjectItem(Presult, "password");
+    password = cJSON_Print(item);
+    item = cJSON_GetObjectItem(Presult, "publish_topic");
+    publish_topic = cJSON_Print(item);
+
+    // Skip the "..." in string
+    endpoint++;
+    endpoint[strlen(endpoint) - 1] = '\0';
+    client_id++;
+    client_id[strlen(client_id) - 1] = '\0';
+    username++;
+    username[strlen(username) - 1] = '\0';
+    password++;
+    password[strlen(password) - 1] = '\0';
+    publish_topic++;
+    publish_topic[strlen(publish_topic) - 1] = '\0';
+
+    rt_kprintf("\r\nmqtt:\r\n\t%s\r\n\t%s\r\n\r\n", endpoint, client_id);
+    rt_kprintf("\t%s\r\n\t%s\r\n", username, password);
+    rt_kprintf("\t%s\r\n", publish_topic);
+    xiaozhi_ws_connect();
+    cJSON_Delete(root);/*每次调用cJSON_Parse函数后，都要释放内存*/
+    return  0;
+}
+
+
+
+void xiaozhi2(int argc, char **argv)
+{
+    char *my_ota_version;
+    uint32_t retry = 10;
+
+    if (!g_pan_connected) {
+        xiaozhi_ui_chat_status("请开启网络共享");
+        xiaozhi_ui_chat_output("请在手机上开启网络共享后重新发起连接");
+        xiaozhi_ui_update_emoji("embarrassed");
+        return;
+    }    
+
+    while (retry-- > 0)
+    {
+        my_ota_version = get_xiaozhi();
+        if (my_ota_version)
+        {
+            http_xiaozhi_data_parse(my_ota_version);
+            rt_free(my_ota_version);
+            break;
+        }
+        else
+        {
+            rt_kprintf("Waiting internet ready(%d)... \r\n", retry);
+            rt_thread_mdelay(1000);
+        }
+    }
+}
+MSH_CMD_EXPORT(xiaozhi2, Get Xiaozhi)
 
 
 /************************ (C) COPYRIGHT Sifli Technology *******END OF FILE****/
