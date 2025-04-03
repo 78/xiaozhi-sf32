@@ -24,13 +24,6 @@ git clone --recursive https://github.com/78/xiaozhi-sf2.git
 ```
 
 
-## 获取代码
-因为仓库包含了子模块，请使用`--recursive`参数克隆仓库，参考如下命令：
-```shell
-git clone --recursive https://github.com/78/xiaozhi-sf2.git
-```
-
-
 ## 编译和烧写
 1. 打开env
 1. `cd`到`sdk`目录，执行`set_env`设置编译环境
