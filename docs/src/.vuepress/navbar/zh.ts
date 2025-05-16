@@ -8,6 +8,8 @@ export const zhNavbar = navbar([
     prefix: "/get-started/",
     children: [
       "yellow_mountain/README.md",
+      "SF32LB52x-DevKit-LCD/README.md",
+      "sf32lb52-nano/README.md",
     ],
   },
   {
