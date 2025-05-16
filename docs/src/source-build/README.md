@@ -1,5 +1,5 @@
 ---
-title: 从源码构建
+title: 源码构建
 ---
 
 ## 概述
@@ -11,3 +11,5 @@ title: 从源码构建
 目前我们支持的硬件有：
 
 - [黄山派](yellow_mountain/README.md)
+- [SF32LB52x-DevKit-LCD开发板](SF32LB52x-DevKit-LCD/README.md)
+- [SF32LB52-DevKit-Nano开发板](SF32LB52-DevKit-Nano/README.md)
