@@ -74,7 +74,7 @@ scons --board=sf32lb52-devkit-lcd_525 -j8
 
 ::: tip
 
-build_sf32lb52-devkit-lcd_525_hcpu\uart_download.bat
+build_sf32lb52-devkit-lcd_525_hcpu\uart_download.bat //
 Linux和macOS用户建议直接使用`sftool`工具下载，使用方法可参考[sftool](https://wiki.sifli.com/tools/SFTool.html)。需要下载的文件有`bootloader/bootloader.elf`、`ftab/ftab.elf`、`main.elf`这三项
 
 :::
