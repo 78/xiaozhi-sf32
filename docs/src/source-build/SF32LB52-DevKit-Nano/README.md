@@ -8,4 +8,4 @@ SF32LB52-DevKit-Nano是基于思澈科技SF32LB52BU56/SF32LB52JUD6芯片的开�
 
 SF32LB52-DevKit-Nano支持的编译方式如下：
 
-- [使用 SiFli-ENV 工具](legacy/README.md)
+- [使用 SiFli-ENV 工具](./readme2.md)

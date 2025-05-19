@@ -1,5 +1,5 @@
 ---
-title: SF32LB52x-DevKit-LCD
+title: SF32LB52-DevKit-LCD
 order: 1
 ---
 
@@ -7,6 +7,6 @@ order: 1
 
 ## 编译方式
 
-SF32LB52x-DevKit-LCD支持的编译方式如下：
+SF32LB52-DevKit-LCD支持的编译方式如下：
 
-- [使用 SiFli-ENV 工具](legacy/README.md)
+- [使用 SiFli-ENV 工具](./readme2.md)

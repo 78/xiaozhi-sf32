@@ -1,8 +1,8 @@
 ---
-title: SF32LB52x-DevKit-LCD开发板
+title: SF32LB52-DevKit-LCD开发板
 ---
 
-本文档将介绍如何在SF32LB52x-DevKit-LCD上快速入门。
+本文档将介绍如何在SF32LB52-DevKit-LCD上快速入门。
 
 ![](assets/lcd_board.png){width=50%}
 
@@ -12,7 +12,7 @@ title: SF32LB52x-DevKit-LCD开发板
 [sftool工具](../sftool.md)。
 
 ### 2.下载固件：
-SF32LB52x-DevKit-LCD开发板的固件位于 <https://github.com/78/xiaozhi-sf32/releases>，我们下载最新版本。需要注意的是，我们一共需要下载`bootloader.bin`、`ftab.bin`、和`main.bin`这三个文件。
+SF32LB52-DevKit-LCD开发板的固件位于 <https://github.com/78/xiaozhi-sf32/releases>，我们下载最新版本。需要注意的是，我们一共需要下载`bootloader.bin`、`ftab.bin`、和`main.bin`这三个文件。
 
 ## 硬件准备
 
@@ -22,7 +22,7 @@ SF32LB52x-DevKit-LCD开发板的固件位于 <https://github.com/78/xiaozhi-sf32
 
 ### 2. 连接喇叭
 
-应该将喇叭连接到开发板的`SPK`接口上，SF32LB52x-DevKit-LCD开发板支持8Ω和4Ω的喇叭，建议使用4Ω的喇叭，音量更大。
+应该将喇叭连接到开发板的`SPK`接口上，SF32LB52-DevKit-LCD开发板支持8Ω和4Ω的喇叭，建议使用4Ω的喇叭，音量更大。
 
 ## 烧录固件
 
@@ -34,7 +34,7 @@ sftool.exe -p COM3 -c SF32LB52 write_flash bootloader.bin@0x12010000 main.bin@0x
 
 ::: tip
 
-其中`COM3`是你连接SF32LB52x-DevKit-LCD开发板的串口号，可能会有所不同，请根据实际情况修改。`bootloader.bin`、`main.bin`、和`ftab.bin`是你下载的固件文件名，建议使用绝对路径引用，如果路径中出现中文或者空格请用`"`将路径括起来。
+其中`COM3`是你连接SF32LB52-DevKit-LCD开发板的串口号，可能会有所不同，请根据实际情况修改。`bootloader.bin`、`main.bin`、和`ftab.bin`是你下载的固件文件名，建议使用绝对路径引用，如果路径中出现中文或者空格请用`"`将路径括起来。
 
 :::
 

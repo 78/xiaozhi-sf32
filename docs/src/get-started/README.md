@@ -13,6 +13,6 @@ icon: lightbulb
 
 ## 硬件支持列表
 
-- [黄山派](yellow_mountain/README.md)
-- [SF32LB52x-DevKit-LCD开发板](SF32LB52x-DevKit-LCD/README.md)
-- [SF32LB52-DevKit-Nano开发板](sf32lb52-nano/README.md)
+- [SF32LB52-DevKit-ULP（黄山派）](SF32LB52-DevKit-ULP/README.md)
+- [SF32LB52-DevKit-LCD开发板](SF32LB52-DevKit-LCD/README.md)
+- [SF32LB52-DevKit-Nano开发板](SF32LB52-DevKit-Nano/README.md)

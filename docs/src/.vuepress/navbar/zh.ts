@@ -7,9 +7,9 @@ export const zhNavbar = navbar([
     icon: "lightbulb",
     prefix: "/get-started/",
     children: [
-      "yellow_mountain/README.md",
-      "SF32LB52x-DevKit-LCD/README.md",
-      "sf32lb52-nano/README.md",
+      "SF32LB52-DevKit-ULP/README.md",
+      "SF32LB52-DevKit-LCD/README.md",
+      "SF32LB52-DevKit-Nano/README.md",
     ],
   },
   {
