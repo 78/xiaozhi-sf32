@@ -6,7 +6,7 @@ title: 使用SiFli-ENV工具编译
 
 ### 安装工具链
 
-在开始前，我们需要确保安装了 `SiFli-ENV` 工具。目前最新版的下载链接为：<https://downloads.sifli.com/sdk/env_1.1.1.zip> 进行安装。
+在开始前，我们需要确保安装了 `SiFli-ENV` 工具。目前最新版的下载链接为：<https://downloads.sifli.com/sdk/env_1.1.1.zip>
 
 ### 克隆源码
 
