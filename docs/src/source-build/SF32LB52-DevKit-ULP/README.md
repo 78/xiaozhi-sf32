@@ -8,4 +8,7 @@ title: SF32LB52-DevKit-ULP（黄山派）
 
 黄山派支持的编译方式如下：
 
-- [使用 SiFli-ENV 工具](./readme2.md)
+- [使用 SiFli-ENV 工具](./env.md)
+- [使用脚本方式](./script.md)
+
+建议使用脚本方式编译，脚本方式可以在 Windows、macOS 和 Linux 上运行。

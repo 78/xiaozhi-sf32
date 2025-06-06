@@ -1,6 +1,13 @@
 ---
 title: 使用SiFli-ENV工具编译
+order: 2
 ---
+
+::: warning
+
+本文档仅适用于 Windows 系统用户！！！
+
+:::
 
 ## 准备工作
 
@@ -54,7 +61,7 @@ git submodule update --init --recursive
 cd C:\xiaozhi-sf32\sdk
 set_env.bat gcc
 cd C:\xiaozhi-sf32\app\project
-scons --board=yellow_mountain -j8
+scons --board=sf32lb52-devkit-lcd_525 -j8
 ```
 
 ::: tip
@@ -65,16 +72,15 @@ scons --board=yellow_mountain -j8
 
 ![](image/2025-05-15-14-41-14.png)
 
-编译生成的文件存放在`build_<board_name>`目录下，包含了需要下载的二进制文件和下载脚本，其中`<board_name>`为以内核为后缀的板子名称，例如`yellow_mountain_build`
+编译生成的文件存放在`build_<board_name>`目录下，包含了需要下载的二进制文件和下载脚本，其中`<board_name>`为以内核为后缀的板子名称，例如`sf32lb52-devkit-lcd_525_build`
 
 ## 下载程序
 
-保持开发板与电脑的USB连接，运行`build_yellow_mountain_hcpu\uart_download.bat`下载程序到开发板，当提示`please input serial port number`，输入开发板实际，例如COM19就输入19，输入完成后敲回车即开始下载程序，完成后按提示按任意键回到命令行提示符。
+保持开发板与电脑的USB连接，运行`build_sf32lb52-devkit-lcd_525_hcpu\uart_download.bat`下载程序到开发板，当提示`please input serial port number`，输入开发板实际，例如COM19就输入19，输入完成后敲回车即开始下载程序，完成后按提示按任意键回到命令行提示符。
 
 ::: tip
 
-
-build_yellow_mountain_hcpu\uart_download.bat //
+build_sf32lb52-devkit-lcd_525_hcpu\uart_download.bat //
 Linux和macOS用户建议直接使用`sftool`工具下载，使用方法可参考[sftool](https://wiki.sifli.com/tools/SFTool.html)。需要下载的文件有`bootloader/bootloader.elf`、`ftab/ftab.elf`、`main.elf`这三项
 
 :::
