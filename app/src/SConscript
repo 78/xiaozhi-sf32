@@ -1,17 +1,11 @@
 import os
 from building import *
 
-CPPDEFINES = []
-PKG_XIAOZHI_USING_AEC = 0
-
-if (PKG_XIAOZHI_USING_AEC == 1):
-    CPPDEFINES += ['PKG_XIAOZHI_USING_AEC']
-
 # Add source code
 src = Glob('*.c')
 src = src + Glob('./iot/*.cc') 
 SrcRemove(src, 'xiaozhi.c')
-group = DefineGroup('Applications', src, depend = [''], CPPDEFINES = CPPDEFINES)
+group = DefineGroup('Applications', src, depend = [''])
 
 Return('group')
 

@@ -58,10 +58,6 @@
 #include "os_support.h"
 #include "audio_server.h"
 #include "mem_section.h"
-#ifdef PKG_XIAOZHI_USING_AEC
-#include "webrtc/common_audio/vad/include/webrtc_vad.h"
-#include "sifli_resample.h"
-#endif
 
 #undef LOG_TAG
 #define LOG_TAG           "xz"
@@ -74,14 +70,13 @@
 #define XZ_EVENT_MIC_RX         (1 << 0)
 #define XZ_EVENT_SPK_TX         (1 << 1)
 #define XZ_EVENT_DOWNLINK       (1 << 2)
-#define XZ_EVENT_EXIT           (1 << 3)
 
 #define XZ_MIC_FRAME_LEN        (320 * 6) //60ms for 16k samplerate
 #define XZ_SPK_FRAME_LEN        (480 * 6) //60ms for 24k samplerate, speaker frame len
 
-#define XZ_EVENT_ALL            (XZ_EVENT_MIC_RX | XZ_EVENT_SPK_TX | XZ_EVENT_DOWNLINK | XZ_EVENT_EXIT)
+#define XZ_EVENT_ALL            (XZ_EVENT_MIC_RX | XZ_EVENT_SPK_TX | XZ_EVENT_DOWNLINK)
 
-#define XZ_DOWNLINK_QUEUE_NUM       64
+#define XZ_DOWNLINK_QUEUE_NUM   64
 
 typedef struct
 {
@@ -106,13 +101,6 @@ typedef struct
     OpusDecoder             *decoder;
     audio_client_t          speaker;
     audio_client_t          mic;
-#if PKG_XIAOZHI_USING_AEC
-    sifli_resample_t        *resample;
-    VadInst *handle;
-    int                     is_voice_changed;
-    int                     is_voice_start;
-    int                     voice_times;
-#endif
     uint32_t                mic_rx_count;
     struct rt_ringbuffer    *rb_opus_encode_input;
     xz_decode_queue_t       downlink_queue[XZ_DOWNLINK_QUEUE_NUM];
@@ -129,7 +117,7 @@ static xz_audio_t xz_audio;
     static  uint32_t g_xz_opus_stack[XZ_OPUS_STACK_SIZE / sizeof(uint32_t)];
     L2_RET_BSS_SECT_END
 #else
-    static uint32_t g_xz_opus_stack[XZ_OPUS_STACK_SIZE / sizeof(uint32_t)] L2_RET_BSS_SECT(g_xz_opus_stack);
+    static  uint32_t g_xz_opus_stack[XZ_OPUS_STACK_SIZE / sizeof(uint32_t)] L2_RET_BSS_SECT(g_xz_opus_stack);
 #endif
 
 
@@ -195,7 +183,6 @@ void xz_udp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p,
         if (sequence !=  g_xz_context.remote_sequence + 1)
         {
             rt_kprintf("Received audio packet with wrong sequence: %lu, expected: %lu\n", sequence,  g_xz_context.remote_sequence + 1);
-            g_xz_context.remote_sequence = sequence;
         }
         else
         {
@@ -208,20 +195,8 @@ void xz_udp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p,
 end:
         pbuf_free(p);
     }
-    else
-    {
-        rt_kprintf("invalid udp\n");
-    }
 }
 
-#if PKG_XIAOZHI_USING_AEC
-RT_WEAK void simulate_button_pressed()
-{
-}
-RT_WEAK void simulate_button_released()
-{
-}
-#endif
 static int mic_callback(audio_server_callback_cmt_t cmd, void *callback_userdata, uint32_t reserved)
 {
     //this was called every 10ms
@@ -231,54 +206,6 @@ static int mic_callback(audio_server_callback_cmt_t cmd, void *callback_userdata
     {
         //data lengh is 320 bytes, which is 10ms for 16k samplerate
         audio_server_coming_data_t *p = (audio_server_coming_data_t *)reserved;
-#ifdef PKG_XIAOZHI_USING_AEC
-        int ret = WebRtcVad_Process(thiz->handle, 16000, (int16_t*)p->data, p->data_len/2);
-        if (ret == 1)
-        {
-            //LOG_I("is voice");
-            if (!thiz->is_voice_start)
-            {
-                thiz->is_voice_changed = 1;
-                thiz->is_voice_start = 1;
-                thiz->voice_times = 0;
-            }
-            if (thiz->voice_times < 2)
-            {
-                thiz->voice_times++;
-                //LOG_I("wait enough voice times=%d", thiz->voice_times);
-                return 0;
-            }
-            if (thiz->is_voice_changed)
-            {
-                thiz->is_voice_changed = 0;
-                LOG_I("call button pressed");
-                simulate_button_pressed();
-            }
-        }
-        else
-        {
-            //LOG_I("not voice");
-            if (thiz->is_voice_start)
-            {
-                thiz->is_voice_start = 0;
-                thiz->is_voice_changed = 1;
-                thiz->voice_times = 0;
-            }
-            if (thiz->voice_times < 3)
-            {
-                thiz->voice_times++;
-                //LOG_I("wait no voice times=%d", thiz->voice_times);
-                return 0;
-            }
-            if (thiz->is_voice_changed)
-            {
-                thiz->is_voice_changed = 0;
-                LOG_I("call button released");
-                simulate_button_released();
-            }
-            return 0;
-        }
-#endif
         rt_ringbuffer_put(thiz->rb_opus_encode_input, p->data, p->data_len);
         thiz->mic_rx_count += 320;
 
@@ -346,7 +273,7 @@ static void xz_button_event_handler(int32_t pin, button_action_t action)
                 xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
                 xz_mic(0);
                 mqtt_listen_stop(&g_xz_context);
-            }
+            }   
         }
         else
         {
@@ -365,7 +292,7 @@ static void xz_button_event_handler(int32_t pin, button_action_t action)
                 xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
                 xz_mic(0);
                 mqtt_listen_stop(&g_xz_context);
-            }
+            }   
         }
 }
 
@@ -412,17 +339,9 @@ void xz_audio_init()
 static void audio_write_and_wait(xz_audio_t *thiz, uint8_t *data, uint32_t data_len)
 {
     int ret;
-#if PKG_XIAOZHI_USING_AEC
-    uint32_t bytes;
-    bytes = sifli_resample_process(thiz->resample, (int16_t *)data, data_len, 0);
-#endif
     while (!thiz->is_exit)
     {
-#if PKG_XIAOZHI_USING_AEC
-        ret = audio_write(thiz->speaker, (uint8_t *)sifli_resample_get_output(thiz->resample), bytes);
-#else
         ret = audio_write(thiz->speaker, data, data_len);
-#endif
         if (ret)
         {
             break;
@@ -461,10 +380,6 @@ static void xz_opus_thread_entry(void *p)
     {
         rt_uint32_t evt = 0;
         rt_event_recv(thiz->event, XZ_EVENT_ALL, RT_EVENT_FLAG_OR | RT_EVENT_FLAG_CLEAR, RT_WAITING_FOREVER, &evt);
-        if (evt & XZ_EVENT_EXIT)
-        {
-            break;
-        }
         if ((evt & XZ_EVENT_MIC_RX) && thiz->is_rx_enable)
         {
 
@@ -534,12 +449,10 @@ static void xz_opus_thread_entry(void *p)
         opus_decoder_destroy(thiz->decoder);
 
     rt_kprintf("---xz thread exit---\r\n");
-
 }
 
 void xz_mic_open(xz_audio_t *thiz)
 {
-#if !PKG_XIAOZHI_USING_AEC
     if (!thiz->mic)
     {
         LOG_I("mic on");
@@ -566,12 +479,10 @@ void xz_mic_open(xz_audio_t *thiz)
         RT_ASSERT(thiz->mic);
         thiz->is_rx_enable = 1;
     }
-#endif
 }
 
 void xz_mic_close(xz_audio_t *thiz)
 {
-#if !PKG_XIAOZHI_USING_AEC
     if (thiz->mic)
     {
         LOG_I("mic off");
@@ -579,12 +490,10 @@ void xz_mic_close(xz_audio_t *thiz)
         thiz->mic = NULL;
         thiz->is_rx_enable = 0;
     }
-#endif
 }
 
 void xz_speaker_open(xz_audio_t *thiz)
 {
-#if !PKG_XIAOZHI_USING_AEC
     if (!thiz->speaker)
     {
         LOG_I("speaker on");
@@ -598,15 +507,13 @@ void xz_speaker_open(xz_audio_t *thiz)
         pa.read_samplerate = 16000;
         pa.read_cache_size = 0;
         pa.write_cache_size = 16000;
-        thiz->speaker = audio_open(AUDIO_TYPE_LOCAL_RECORD, AUDIO_TX, &pa, NULL, NULL);
+        thiz->speaker = audio_open(AUDIO_TYPE_LOCAL_MUSIC, AUDIO_TX, &pa, NULL, NULL);
         RT_ASSERT(thiz->speaker);
         thiz->is_tx_enable = 1;
     }
-#endif
 }
 void xz_speaker_close(xz_audio_t *thiz)
 {
-#if !PKG_XIAOZHI_USING_AEC
     LOG_I("speaker off");
     xiaozhi_ui_chat_status("\u5f85\u547d\u4e2d...");
     if (thiz->speaker)
@@ -642,15 +549,14 @@ void xz_speaker_close(xz_audio_t *thiz)
         }
         rt_exit_critical();
     }
-#endif
 }
 
 /**
  * @brief 打开音频解码器和编码器
- *
+ * 
  * 该函数负责初始化音频处理模块，包括事件创建、队列初始化、线程创建等
  * 如果模块尚未初始化，则根据参数决定是否使用WebSocket，并准备音频处理线程
- *
+ * 
  * @param is_websocket 指示是否使用WebSocket的标志
  */
 void xz_audio_decoder_encoder_open(uint8_t is_websocket)
@@ -661,33 +567,6 @@ void xz_audio_decoder_encoder_open(uint8_t is_websocket)
     // 检查模块是否已经初始化，避免重复初始化
     if (!thiz->inited)
     {
-        memset(thiz, 0, sizeof(xz_audio_t));
-#if PKG_XIAOZHI_USING_AEC
-        int ret;
-        audio_parameter_t pa = {0};
-        pa.write_bits_per_sample = 16;
-        pa.write_channnel_num = 1;
-        pa.write_samplerate = 16000;
-        pa.read_bits_per_sample = 16;
-        pa.read_channnel_num = 1;
-        pa.read_samplerate = 16000;
-        pa.read_cache_size = 0;
-        pa.write_cache_size = 0;
-        pa.is_need_3a = 1;
-        thiz->mic = audio_open(AUDIO_TYPE_LOCAL_MUSIC, AUDIO_TXRX, &pa, mic_callback, NULL);
-        RT_ASSERT(thiz->mic);
-        thiz->speaker = thiz->mic;
-        thiz->is_rx_enable = 1;
-        thiz->is_tx_enable = 1;
-        thiz->resample = sifli_resample_open(1, 24000, 16000);
-        RT_ASSERT(thiz->resample);
-        ret = WebRtcVad_Create(&thiz->handle);
-        RT_ASSERT(!ret);
-        ret = WebRtcVad_Init(thiz->handle);
-        RT_ASSERT(!ret);
-        ret = WebRtcVad_set_mode(thiz->handle, 3); // 0 ~ 3
-        RT_ASSERT(!ret);
-#endif
         // 根据参数设置是否使用WebSocket
         thiz->is_websocket = is_websocket;
 
@@ -738,10 +617,9 @@ void xz_audio_decoder_encoder_close(void)
     xz_audio_t *thiz = &xz_audio;
 
     thiz->is_exit = 1;
-    rt_event_send(thiz->event, XZ_EVENT_EXIT);
     while (rt_thread_find(XZ_THREAD_NAME))
     {
-        LOG_I("wait thread %s exit", XZ_THREAD_NAME);
+        LOG_I("wait thread %s eixt", XZ_THREAD_NAME);
         os_delay(100);
     }
 
@@ -756,37 +634,12 @@ void xz_audio_decoder_encoder_close(void)
             thiz->downlink_queue[i].data = NULL;
         }
     }
-#if PKG_XIAOZHI_USING_AEC
-    sifli_resample_close(thiz->resample);
-    audio_close(thiz->mic);
-    thiz->mic = NULL;
-    thiz->speaker = NULL;
-#else
-    if (thiz->mic)
-    {
-        audio_close(thiz->mic);
-        thiz->mic = NULL;
-    }
-
-    if (thiz->speaker)
-    {
-        audio_close(thiz->speaker);
-        thiz->speaker = NULL;
-    }
-#endif
-    thiz->inited = 0;
 }
 
 void xz_audio_downlink(uint8_t *data, uint32_t size, uint32_t *aes_value, uint8_t need_aes)
 {
     xz_audio_t *thiz = &xz_audio;
     rt_slist_t *idle;
-    if (!thiz->inited)
-    {
-        LOG_I("%s invalid\r\n", __FUNCTION__);
-        return;
-    }
-    //LOG_I("%s tx=%d inited=%d\r\n", __FUNCTION__, thiz->is_tx_enable, thiz->inited);
     rt_enter_critical();
     idle = rt_slist_first(&thiz->downlink_decode_idle);
     rt_exit_critical();

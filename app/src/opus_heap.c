@@ -50,7 +50,7 @@
 #include "mem_section.h"
 #include "os_support.h"
 
-#define OPUS_HEAP_SIZE    (1024*400)
+#define OPUS_HEAP_SIZE    (1024*300)
 L2_RET_BSS_SECT_BEGIN(opus_heap_pool)
 ALIGN(4) static uint8_t opus_heap_pool[OPUS_HEAP_SIZE] L2_RET_BSS_SECT(opus_heap_pool);
 L2_RET_BSS_SECT_END
