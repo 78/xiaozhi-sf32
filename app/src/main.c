@@ -432,7 +432,7 @@ void keep_First_pan_connection()
     xz_button_init2();
     audio_server_set_private_volume(AUDIO_TYPE_LOCAL_MUSIC, 6);//设置音量
     iot_initialize();//Initialize iot
-    #ifdef BSP_USING_BOARD_YELLOW_MOUNTAIN
+#ifdef BSP_USING_BOARD_SF32LB52_LCHSPI_ULP
     unsigned int *addr2 = (unsigned int *)0x50003088;   //21
     *addr2 = 0x00000200;
     unsigned int *addr = (unsigned int *)0x500030B0;    //31
@@ -445,7 +445,7 @@ void keep_First_pan_connection()
     HAL_PIN_Set(PAD_PA40, GPIO_A40, PIN_PULLDOWN, 1);
     
     //rt_pm_request(PM_SLEEP_MODE_IDLE);
-    #endif
+#endif
     //Create  xiaozhi UI  
     rt_thread_t tid = rt_thread_create("xz_ui", xiaozhi_ui_task, NULL, 4096, 30, 10);
     rt_thread_startup(tid);
