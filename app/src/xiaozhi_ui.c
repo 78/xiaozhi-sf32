@@ -12,9 +12,10 @@
 #include "lv_display.h"
 #include "lv_obj_pos.h"
 #include "ulog.h"
+#include "drv_flash.h"
 #define IDLE_TIME_LIMIT  (30000)
 #define LCD_DEVICE_NAME  "lcd"
-
+#define TOUCH_NAME  "touch"
 static struct rt_semaphore update_ui_sema;
 /*Create style with the new font*/
 static lv_style_t style;
@@ -291,7 +292,7 @@ void xiaozhi_ui_task(void *args)
 {
     rt_err_t ret = RT_EOK;
     rt_uint32_t ms;
-
+    static rt_device_t touch_device;
 
     rt_sem_init(&update_ui_sema, "update_ui", 1, RT_IPC_FLAG_FIFO);
 
@@ -301,7 +302,15 @@ void xiaozhi_ui_task(void *args)
     {
         return;
     }
-    
+
+    touch_device = rt_device_find(TOUCH_NAME);
+    if(touch_device==RT_NULL)
+    {
+        LOG_I("touch_device!=NULL!");
+        RT_ASSERT(0);
+    }
+    rt_device_control(touch_device, RTGRAPHIC_CTRL_POWEROFF, NULL);
+
 #ifdef BSP_USING_PM
     pm_ui_init();
 #endif
