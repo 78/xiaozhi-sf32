@@ -77,7 +77,7 @@ AMOLED屏幕具备高对比度与鲜艳色彩，黑色显示纯正且节能，�
 
 整体接线示意图如下
 
-![img](assets/add1.png)
+![img](assets/add5.png)
 
 以此视图为正面，所有模块的排针都在pcb的背面进行焊接，然后插到面包板上
 
@@ -127,7 +127,7 @@ SF32LB52-DevKit-Nano开发板的引脚功能定义如上图所示，我们主要
 
 #### 2.3 PAM8302功放接线
 
-![img](assets/1747288870287-12.png)
+![img](assets/add6.png)
 
 #### 2.4 MEMS麦克风接线
 
