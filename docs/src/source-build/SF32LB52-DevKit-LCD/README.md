@@ -9,7 +9,7 @@ order: 1
 
 SF32LB52-DevKit-LCD支持的编译方式如下：
 
-- [使用 SiFli-ENV 工具](./readme2.md)
+- [使用 SiFli-ENV 工具](./env.md)
 - [使用脚本方式](./script.md)
 
 建议使用脚本方式编译，脚本方式可以在 Windows、macOS 和 Linux 上运行。
