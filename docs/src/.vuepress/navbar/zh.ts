@@ -16,5 +16,10 @@ export const zhNavbar = navbar([
     text: "源码构建",
     icon: "code",
     link: "/source-build/",
+  },
+  {
+    link: "/architecture/",
+    text: "架构设计",
+    icon: "architecture"
   }
 ]);
