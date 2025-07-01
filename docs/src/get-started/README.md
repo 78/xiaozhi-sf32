@@ -28,8 +28,8 @@ SF32LB52-DevKit-Nano: SF32LB52-DevKit-Nano.zip
 
 ## 烧录固件
 
-使用[sftool工具](../sftool.md)烧录固件，打开终端之后输入如下命令：
-
+使用[sftool工具](../sftool.md)烧录固件，打开终端之后输入如下命令（Windows）：
+!!!需要注意的是：命令中的 ./sftool.exe 中的斜杠，在不同操作系统中有不同的表现： windows是反斜杠，linux是斜杠。
 ```powershell
 ./sftool.exe -p COM3 -c SF32LB52 write_flash bootloader.bin@0x12010000 main.bin@0x12020000 ftab.bin@0x12000000
 ```
