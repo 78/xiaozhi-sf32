@@ -1,0 +1,46 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, xiaozhi2 ]
+  pull_request:
+    branches: [ main, xiaozhi2 ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: 
+          - sf32lb52-lchspi-ulp
+          - sf32lb52-lcd_n16r8
+          - sf32lb52-nano-52j
+      fail-fast: false
+    
+    name: Build ${{ matrix.target }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup build environment
+      run: |
+        cd sdk
+        ./install.sh
+    
+    - name: Build ${{ matrix.target }}
+      run: |
+        cd sdk
+        . ./export.sh
+        cd -
+        cd app/project
+        scons --board=${{ matrix.target }} -j$(nproc)
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.target }}
+        path: |
+          app/project/build_*
