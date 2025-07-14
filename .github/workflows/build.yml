@@ -14,7 +14,7 @@ jobs:
         target: 
           - sf32lb52-lchspi-ulp
           - sf32lb52-lcd_n16r8
-          - sf32lb52-nano-52j
+          - sf32lb52-nano_52j
       fail-fast: false
     
     name: Build ${{ matrix.target }}
