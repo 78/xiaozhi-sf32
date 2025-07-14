@@ -1,6 +1,6 @@
 ---
 title: 修改蓝牙名称
-icon: bluetooth
+icon: fa-brands fa-bluetooth-b
 ---
 
 默认情况下，小智的蓝牙名称是`sifli-pan`。但是默认的名称有些太大众化了，并且存在多个设备的时候还可能会混淆，因此在本文档中我们将尝试修改。

@@ -1,6 +1,6 @@
 ---
 title: MCP (Model Context Protocol)
-icon: mcp
+icon: fa-solid fa-phone
 ---
 
 ## MCP 简介

@@ -20,11 +20,11 @@ export const zhNavbar = navbar([
   {
     link: "/architecture/",
     text: "架构设计",
-    icon: "architecture"
+    icon: "fa-solid fa-sitemap"
   },
   {
     link: "/custom/",
     text: "自定义",
-    icon: "settings",
+    icon: "fa-solid fa-wrench",
   },
 ]);
