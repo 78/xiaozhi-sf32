@@ -14,7 +14,7 @@ title: 源码构建
 - [SF32LB52-DevKit-LCD开发板](SF32LB52-DevKit-LCD/README.md)
 - [SF32LB52-DevKit-Nano开发板](SF32LB52-DevKit-Nano/README.md)
 
-## 使用 GitHub Action 自动编译
+## 使用 GitHub Action 自动编译（可选）
 
 在Windows上进行小智的编译会比较耗时，而在Linux和macOS上相对会快一些。但考虑到Linux的使用门槛相对较高，我们可以利用GitHub Action来实现自动化编译，这能为您节省不少本地编译时间。
 
@@ -100,13 +100,3 @@ git push origin main
 
 4. 编译完成之后再次刷新页面，可以看到下方多了几个Artifacts栏，点击下载按钮即可下载对应芯片的构建产物，可直接烧录。
 
-### 优势
-
-使用GitHub Action自动编译具有以下优势：
-
-- **节省本地资源**：无需占用本地计算资源和时间
-- **环境一致性**：使用统一的编译环境，避免本地环境差异导致的问题
-- **并行编译**：可以同时为多个硬件平台生成固件
-- **版本管理**：每次编译都与特定的git commit关联，便于版本追踪
-
-> ⚠️ **注意**：GitHub Action有使用限制，请合理使用，避免频繁触发不必要的编译任务。
