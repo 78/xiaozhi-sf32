@@ -24,23 +24,66 @@ sftool 是一个开源软件，可以在[GitHub](https://github.com/OpenSiFli/sf
 
 :::
 
-## sftool 命令格式
+## sftool 命令格式及使用方法
 
 sftool是一个命令行工具，它有一套自己的命令格式，一般的命令规则如下：
 
-```powerhell
-sftool [选项] 命令 [命令选项]
+```bash
+sftool [选项] [选项值] [命令] [命令选项]
 ```
 
-- -c, --chip \<CHIP\>: 目标芯片类型 (目前支持SF32LB52)
-- -m, --memory \<MEMORY\>: 存储类型 [nor, nand, sd] (默认: nor)
-- -p, --port \<PORT\>: 串行端口设备路径
-- -b, --baud \<BAUD\>: 闪存/读取时使用的串口波特率 (默认: 1000000)
-- --before \<OPERATION\>: 连接芯片前的操作 [no_reset, soft_reset] (默认: no_reset)
-- --after \<OPERATION\>: 工具完成后的操作 [no_reset, soft_reset] (默认: soft_reset)
-- --connect-attempts \<ATTEMPTS\>: 连接尝试次数，负数或0表示无限次 (默认: 3)
-- --compat : 兼容模式，如果经常出现超时错误或下载后校验失败，则应打开此选项。
+### 全局选项
 
+- `-c, --chip <CHIP>`: 目标芯片类型 (目前支持SF32LB52)
+- `-m, --memory <MEMORY>`: 存储类型 [nor, nand, sd] (默认: nor)
+- `-p, --port <PORT>`: 串行端口设备路径
+- `-b, --baud <BAUD>`: 闪存/读取时使用的串口波特率 (默认: 1000000)
+- `--before <OPERATION>`: 连接芯片前的操作 [no_reset, soft_reset] (默认: no_reset)
+- `--after <OPERATION>`: 工具完成后的操作 [no_reset, soft_reset] (默认: soft_reset)
+- `--connect-attempts <ATTEMPTS>`: 连接尝试次数，负数或0表示无限次 (默认: 7)
+- `--compat` : 兼容模式，如果经常出现超时错误或下载后校验失败，则应打开此选项。
+
+### 写入闪存命令
+
+```bash
+# Linux/Mac
+sftool -c SF32LB52 -p /dev/ttyUSB0 write_flash [选项] <文件@地址>...
+# Windows
+sftool -c SF32LB52 -p COM9 write_flash [选项] <文件@地址>...
+```
+
+#### 写入闪存选项
+
+- `--verify`: 验证刚写入的闪存数据
+- `-u, --no-compress`: 传输期间禁用数据压缩
+- `-e, --erase-all`: 在编程前擦除所有闪存区域（不仅仅是写入区域）
+- `<文件@地址>`: 二进制文件及其目标地址，如果文件格式包含地址信息，@地址部分是可选的
+
+### 示例
+
+Linux/Mac:
+
+```bash
+# 写入单个文件到闪存
+sftool -c SF32LB52 -p /dev/ttyUSB0 write_flash app.bin@0x12020000
+
+# 写入多个文件到不同地址
+sftool -c SF32LB52 -p /dev/ttyUSB0 write_flash bootloader.bin@0x12010000 app.bin@0x12020000 ftab.bin@0x12000000
+
+# 写入并验证
+sftool -c SF32LB52 -p /dev/ttyUSB0 write_flash --verify app.bin@0x12020000
+
+# 写入前擦除所有闪存
+sftool -c SF32LB52 -p /dev/ttyUSB0 write_flash -e app.bin@0x12020000
+```
+
+Windows:
+
+```bash
+# 写入多个文件到不同地址
+sftool -c SF32LB52 -p COM10 write_flash bootloader.bin@0x12010000 app.bin@0x12020000 ftab.bin@0x12000000
+# 其它同上
+```
 ## 命令行工具的使用
 
 本章节针对Windows系统用户，其他系统的用户想必已经拥有了丰富的命令行工具使用经验，因此不再赘述。有经验的Windows用户也可以跳过本章节。
@@ -85,7 +128,7 @@ Shell的定义是运行在终端背后的命令解释器，负责理解你的命
 
 如果没有意外的话，打开之后将会看到一个黑色或者蓝色的窗口，这就是命令行工具了，接下来我们一切操作都在此进行
 
-##### 通过运行窗口
+##### 通过“运行”窗口
 
 1. 按下 `Win + R` 组合键，打开运行窗口
 2. 输入以下命令之一，点击确定：
@@ -181,40 +224,38 @@ sftool 0.1.5
 下载固件我们使用`write_flash`命令，命令格式如下：
 
 ```shell
-sftool write_flash [选项] <固件文件>
+sftool write_flash [选项] [选项值]  <固件文件>
 ```
 
 ### 选项
 
-- --verify（验证） 验证闪存中刚写入的数据
-- -u，--no-compress 在传输过程中禁用数据压缩
-- -e，--erase-all 在编程前擦除闪存的所有区域（不只是写入区域）
+- 参见 [sftool 命令格式及使用方法](#sftool-命令格式及使用方法)
 
 ### 固件文件
 
-这个是需要下载到芯片上的固件文件，通常是一个`.bin`文件。格式为`file@address`，例如：
+这个是需要下载到芯片上的固件文件，通常是一个`.bin`文件。要将其用sftool烧录，引用文件的格式为`文件@目标寄存器地址`，例如：
 
 ```shell
-sftool write_flash firmware.bin@0x12000000
+sftool write_flash [选项][选项值] firmware.bin@0x12000000
 ```
 
 如果有多个文件需要下载，可以使用空格分隔，例如：
 
 ```shell
-sftool write_flash firmware1.bin@0x12000000 firmware2.bin@0x12100000
+sftool write_flash [选项][选项值] firmware1.bin@0x12000000 firmware2.bin@0x12100000
 ```
 
 另外，sftool也支持直接下载`.elf`和`.hex`文件，使用这两种文件格式的时候，可以不需要指定地址，sftool会自动解析文件中的地址信息。例如：
 
 ```shell
-sftool write_flash firmware.elf
+sftool write_flash [选项][选项值] firmware.elf
 ```
 
 ::: tip
 如果路径中存在空格，那么需要使用`"`将路径括起来，例如：
 
 ```shell
-sftool write_flash "C:\My Documents\firmware.bin@0x12000000"
+sftool write_flash [选项][选项值] "C:\My Documents\firmware.bin@0x12000000"
 ```
 
 :::
