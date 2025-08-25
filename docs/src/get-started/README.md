@@ -34,9 +34,18 @@ SF32LB52-DevKit-Nano: sf32lb52-nano_52j.zip
 使用[sftool工具](../sftool.md)烧录固件，打开终端之后输入如下命令（Windows）：
 !!!需要注意的是：命令中的 ./sftool.exe 中的斜杠，在不同操作系统中有不同的表现： windows是反斜杠，linux是斜杠。
 ```powershell
-./sftool.exe -p COM3 -c SF32LB52 write_flash bootloader.bin@0x12010000 ftab.bin@0x12000000 ER_IROM2.bin@0x12A28000 ER_IROM3.bin@0x12228000 ER_IROM1.bin@0x12020000
+./sftool.exe -p COM3 -c SF32LB52 write_flash bootloader.bin@0x12010000 ftab.bin@0x12000000 ER_IROM2.bin@0x12A28000 ER_IROM3.bin@0x12268000 ER_IROM1.bin@0x12020000
 ```
 
+
+
+::: details 1.2.0 - 1.2.2 版本
+如果你使用的是1.2.0 - 1.2.2的版本，请使用以下命令：
+
+```powershell
+./sftool.exe -p COM3 -c SF32LB52 write_flash bootloader.bin@0x12010000 ftab.bin@0x12000000 ER_IROM2.bin@0x12A28000 ER_IROM3.bin@0x12228000 ER_IROM1.bin@0x12020000
+```
+:::
 ::: details 1.2.0 之前的版本
 
 如果你使用的是1.2.0之前的版本，请使用以下命令：
@@ -44,8 +53,9 @@ SF32LB52-DevKit-Nano: sf32lb52-nano_52j.zip
 ```powershell
 ./sftool.exe -p COM3 -c SF32LB52 write_flash bootloader.bin@0x12010000 ftab.bin@0x12000000 main.bin@0x12020000
 ```
-
 :::
+
+
 
 ::: tip
 `bootloader.bin`、`ER_IROM2.bin`、`ER_IROM3.bin`、`ER_IROM1.bin` 和`ftab.bin`是你下载的固件文件名，建议使用绝对路径引用，如果路径中出现中文或者空格请用`"`将路径括起来。
