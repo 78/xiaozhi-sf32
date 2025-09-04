@@ -43,8 +43,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # 推送到远程仓库的master分支（明确指定origin和master）
-echo "正在推送到远程仓库 origin/master..."
-git push origin master
+echo "正在推送到远程仓库 origin/main..."
+git push origin main
 if [ $? -ne 0 ]; then
     echo "错误：推送失败，请检查网络连接、远程仓库配置或分支名称是否正确"
     exit 1
