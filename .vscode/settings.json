@@ -1,0 +1,47 @@
+{
+    "MicroPython.executeButton": [
+        {
+            "text": "▶",
+            "tooltip": "Run",
+            "alignment": "left",
+            "command": "extension.executeFile",
+            "priority": 3.5
+        }
+    ],
+    "MicroPython.syncButton": [
+        {
+            "text": "$(sync)",
+            "tooltip": "sync",
+            "alignment": "left",
+            "command": "extension.execute",
+            "priority": 4
+        }
+    ],
+    "files.associations": {
+        "*.ino": "c",
+        "string.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "board.h": "c",
+        "xiaozhi_public.h": "c",
+        "xiaozhi_weather.h": "c",
+        "chrono": "c",
+        "bt_env.h": "c",
+        "cstddef": "c",
+        "optional": "c",
+        "limits": "c",
+        "memory": "c",
+        "new": "c",
+        "functional": "c",
+        "type_traits": "c",
+        "bsp_et_asr_ctrl.h": "c",
+        "xiaozhi_ui.h": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "sstream": "c",
+        "xiaozhi.h": "c",
+        "bf0_hal.h": "c"
+    },
+    
+}

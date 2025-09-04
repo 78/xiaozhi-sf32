@@ -1,0 +1,1 @@
+1.modify lcd driver,refer to drivers/include
