@@ -10,8 +10,6 @@
 
 
 
-
-
 #ifdef ROW_OFFSET_PLUS
     #define ROW_OFFSET  (ROW_OFFSET_PLUS)
 #else

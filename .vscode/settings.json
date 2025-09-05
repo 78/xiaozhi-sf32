@@ -47,7 +47,8 @@
         "bf0_hal_pinmux.h": "c",
         "bf0_pin_const.h": "c",
         "bf0_hal_def.h": "c",
-        "drv_spi.h": "c"
+        "drv_spi.h": "c",
+        "drv_lcd.h": "c"
     },
     
 }

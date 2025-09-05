@@ -4,14 +4,32 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\include",
-                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\external\\CMSIS\\Include",
-                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\cmsis\\Include",
-                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\sf32lb52-xty-ai_base",
-                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\sf32lb52-xty-ai",
-                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\Include",
-                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\cmsis\\sf32lb52x",
-                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\rtthread\\bsp\\sifli\\drivers"
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\include",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\external\\CMSIS\\Include",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\cmsis\\Include",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\sf32lb52-xty-ai_base",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\sf32lb52-xty-ai",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\Include",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\cmsis\\sf32lb52x",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\rtthread\\bsp\\sifli\\drivers",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\rtthread\\components\\drivers\\include",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\rtthread\\include",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\middleware\\include",
+                // "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\os_adaptor\\inc"
+
+
+                 "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\include",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\external\\CMSIS\\Include",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\cmsis\\Include",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\sf32lb52-xty-ai_base",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\sf32lb52-xty-ai",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\Include",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\cmsis\\sf32lb52x",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\rtthread\\bsp\\sifli\\drivers",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\rtthread\\components\\drivers\\include",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\rtthread\\include",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\middleware\\include",
+                "G:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\os_adaptor\\inc"
             ],
             "defines": [
                 "_DEBUG",
