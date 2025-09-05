@@ -1,7 +1,29 @@
-git clone https://github.com/mynameisleiyao/xiaozhi-sf32_lei.git
-git remote add origin https://github.com/mynameisleiyao/xiaozhi-sf32_lei.git
+git clone git@github.com:mynameisleiyao/xiaozhi-sf32_lei.git
+git remote add origin git@github.com:mynameisleiyao/xiaozhi-sf32_lei.git
+
+从HTTP方式改为SSH方式,避免每次输入帐户与密码
+git remote set-url origin git@github.com:mynameisleiyao/xiaozhi-sf32_lei.git
 git log 与git checkout
 
-ssh-keygen -t ed25519 -C "jamal121@163.com"
-cat github.pub
-clip < github.pub
+生成用于 Gitee 的密钥对：打开终端，输入ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_gitee -C "your_gitee_email@example.com"，然后按提示操作，生成 Gitee 的密钥对。
+生成用于 GitHub 的密钥对：在终端中输入ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_github -C "your_github_email@example.com"，同样按提示完成操作。
+添加公钥到平台：分别将id_ed25519_gitee.pub和id_ed25519_github.pub的内容复制到 Gitee 和 GitHub 账户设置中的 SSH 公钥配置区域。
+
+此外，还需要配置 SSH 配置文件（通常是~/.ssh/config），以便系统能够正确识别和使用不同的密钥对。例如：
+
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_gitee -C "jamal121@163.com"
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_github -C "jamal121097113@gmail.com"
+cat ~/.ssh/id_ed25519_gitee.pub
+cat ~/.ssh/id_ed25519_github.pub
+clip <~/.ssh/id_ed25519_gitee.pub
+clip <~/.ssh/id_ed25519_github.pub
+Get-Service -Name ssh-agent | Set-Service -StartupType Manual
+ssh-add D:/Cadence/SPB_Data/.ssh/id_ed25519
+
+passphrases: Kirin107105
+gpg --export-secret-keys -a 804F2757011B5C95 > private_key.asc
+gpg --export -a 804F2757011B5C95  > public_key.asc
+
+另一台电脑
+gpg --import private_key.asc
+gpg --import public_key.asc
