@@ -4,7 +4,10 @@
 #include "drv_lcd.h"
 #include "bf0_pin_const.h"
 #include "log.h"
-
+#include <bf0_hal_lcdc.h>
+#include <bf0_hal_gpio.h>
+#include <bf0_hal_pinmux.h>
+#include "rtdef.h"
 
 
 
@@ -364,18 +367,18 @@ static void LCD_DisplayOff(LCDC_HandleTypeDef *hlcdc)
 
 static void LCD_SetRegion(LCDC_HandleTypeDef *hlcdc, uint16_t Xpos0, uint16_t Ypos0, uint16_t Xpos1, uint16_t Ypos1)
 {
-    LCD_WriteReg(hlcdc, REG_CASET, (uint8_t *)Xpos0>>8, 2);
-    LCD_Write_COM_8(0x2a);
-    LCD_Write_DATA_8(x1 >> 8);
-    LCD_Write_DATA_8(x1 & 0xff);
-    LCD_Write_DATA_8(x2 >> 8);
-    LCD_Write_DATA_8(x2 & 0xff);
-    LCD_Write_COM_8(0x2b);
-    LCD_Write_DATA_8(y1 >> 8);
-    LCD_Write_DATA_8(y1 & 0xff);
-    LCD_Write_DATA_8(y2 >> 8);
-    LCD_Write_DATA_8(y2 & 0xff);
-    LCD_Write_COM_8(0x2c);
+    uint8_t parameter[4];
+    parameter[0] = Xpos0>>8;
+    parameter[1] = Xpos0 & 0x0f;
+    parameter[2] = Xpos1>>8;
+    parameter[3] = Xpos1 & 0x0f;
+    LCD_WriteReg(hlcdc, REG_CASET, parameter, 4);
+    parameter[0] = Ypos0>>8;
+    parameter[1] = Ypos0 & 0x0f;
+    parameter[2] = Ypos1>>8;
+    parameter[3] = Ypos1 & 0x0f;
+    LCD_WriteReg(hlcdc, REG_RASET, parameter, 4);
+    LCD_WriteReg(hlcdc, 0x2c, (uint8_t *)NULL, 0);
 }
 
 /**

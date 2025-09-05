@@ -28,6 +28,9 @@
 #include "bf0_sys_cfg.h"
 #include "drv_flash.h"
 #include "gui_app_pm.h"
+#include "bf0_pin_const.h"
+#include <bf0_hal_pinmux.h>
+
 static const char *ota_version =
     "{\r\n "
     "\"version\": 2,\r\n"

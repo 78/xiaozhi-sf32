@@ -22,7 +22,7 @@
 #define IDLE_TIME_LIMIT  (20000)
 #define SHOW_TEXT_LEN 100
 #include "lv_seqimg.h"
-#include "xiaozhi_ui.h"
+#include "xiaozhi_ui.h" 
 #include "xiaozhi_weather.h"
 
 // 定义UI消息类型
