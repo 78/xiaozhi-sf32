@@ -1,3 +1,7 @@
 git clone https://github.com/mynameisleiyao/xiaozhi-sf32_lei.git
 git remote add origin https://github.com/mynameisleiyao/xiaozhi-sf32_lei.git
 git log 与git checkout
+
+ssh-keygen -t ed25519 -C "jamal121@163.com"
+cat github.pub
+clip < github.pub
