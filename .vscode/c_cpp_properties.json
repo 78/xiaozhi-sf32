@@ -4,14 +4,21 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "G:\\Desktop\\Project_jamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\Include"
+                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\include",
+                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\external\\CMSIS\\Include",
+                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\cmsis\\Include",
+                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\sf32lb52-xty-ai_base",
+                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\customer\\boards\\sf32lb52-xty-ai",
+                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\Include",
+                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\drivers\\cmsis\\sf32lb52x",
+                "E:\\Desktop\\ProjectJamal\\SF32_GITEE\\SDK\\sifli-sdk\\rtos\\rtthread\\bsp\\sifli\\drivers"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE"
             ],
-            "compilerPath": "G:\\ToolChains\\mingw\\bin\\gcc.exe",
+            "compilerPath": "D:\\ToolChains\\mingw64\\bin\\gcc.exe",
             "cStandard": "c17",
             "intelliSenseMode": "windows-gcc-x64"
         }

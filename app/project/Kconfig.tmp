@@ -1,4 +1,4 @@
-source "G:/Desktop/Project_jamal/SF32_GITEE/SDK/sifli-sdk/customer/boards/sf32lb52-xty-ai/hcpu/Kconfig.board"
+source "E:/Desktop/ProjectJamal/SF32_GITEE/SDK/sifli-sdk/customer/boards/sf32lb52-xty-ai/hcpu/Kconfig.board"
 source "$SIFLI_SDK/customer/boards/Kconfig.v2"
 source "$SIFLI_SDK/Kconfig.v2"
 rsource "Kconfig.proj"

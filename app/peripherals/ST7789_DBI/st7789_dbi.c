@@ -1,9 +1,8 @@
-#include <rtthread.h>
 #include "string.h"
 #include "board.h"
 #include "drv_io.h"
 #include "drv_lcd.h"
-
+#include "bf0_pin_const.h"
 #include "log.h"
 
 
@@ -61,8 +60,8 @@
 // #define REG_DISPLAY_ON         0x29
 #define REG_WRITE_RAM          0x3C
 #define REG_READ_RAM           0x3E
-#define REG_CASET              0x2A
-#define REG_RASET              0x2B
+#define REG_CASET              0x2A //column address set
+#define REG_RASET              0x2B //row address set
 #define REG_COLOR_MODE         0x3A
 
 #define REG_WBRIGHT            0x51 /* Write brightness*/
@@ -123,7 +122,13 @@ static LCDC_InitTypeDef lcdc_int_cfg =
 // #define CS_PA_x_PIN  31
 #define CS_PA_x_PIN  3
 // #define LCD_BL_EN_PIN (96 + 3)       // GPIO_B03
-#define LCD_BL_EN_PIN 26      // GPIO_B03
+#define LCD_BL_EN_PIN 26      // GPIO_A26 VCC SW
+
+#define LCDC1_8080_PEN      GPIO_A1
+#define LCDC1_8080_T_CS     GPIO_A2
+#define LCDC1_8080_T_DI     GPIO_A9
+#define LCDC1_8080_T_CLK    GPIO_A20
+#define LCDC1_8080_T_DO     GPIO_A31   
 
 void st7789_dbi_CS_HOLD_LOW(void)
 {

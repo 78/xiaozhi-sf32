@@ -1,0 +1,10 @@
+从运行开始,之后一直在这个cmd里面操作
+export.ps1环境配置 - sf32_sdk.bat
+
+cd 到 project下配置
+menuconfig --board=sf32lb52-lcd_52d
+清理之前编译
+scons -c
+8线程编译,速度快点
+scons --board=sf32lb52-lcd_52d -j8
+编译后运行build_sf32lb52-lcd_52d_hcpu中生成的uart_download.bat

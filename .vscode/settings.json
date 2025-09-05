@@ -41,7 +41,13 @@
         "utility": "c",
         "sstream": "c",
         "xiaozhi.h": "c",
-        "bf0_hal.h": "c"
+        "bf0_hal.h": "c",
+        "bsp_board.h": "c",
+        "drv_io.h": "c",
+        "bf0_hal_pinmux.h": "c",
+        "bf0_pin_const.h": "c",
+        "bf0_hal_def.h": "c",
+        "drv_spi.h": "c"
     },
     
 }
