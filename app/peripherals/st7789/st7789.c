@@ -15,7 +15,7 @@
 #ifdef ROW_OFFSET_PLUS
     #define ROW_OFFSET (ROW_OFFSET_PLUS)
 #else
-    #define ROW_OFFSET (20)
+    #define ROW_OFFSET (0)
 #endif
 
 /**
@@ -24,10 +24,10 @@
 #define THE_LCD_ID 0x85
 
 /**
- * @brief  ST7789 Size
+ * @brief  ST7789 Size - 2.0 inch 320x240
  */
-// #define  THE_LCD_PIXEL_WIDTH    ((uint16_t)240)
-// #define  THE_LCD_PIXEL_HEIGHT   ((uint16_t)280)
+#define  THE_LCD_PIXEL_WIDTH    ((uint16_t)320)
+#define  THE_LCD_PIXEL_HEIGHT   ((uint16_t)240)
 
 /**
  * @brief  ST7789 Registers
@@ -168,6 +168,20 @@ static void LCD_Init(LCDC_HandleTypeDef *hlcdc)
     /* Display inversion On */
     LCD_WriteReg(hlcdc, REG_DISPLAY_INVERSION, (uint8_t *)NULL, 0);
 
+    /* Set Column address CASET */
+    parameter[0] = 0x00;
+    parameter[1] = 0x00;
+    parameter[2] = (THE_LCD_PIXEL_WIDTH - 1) >> 8;
+    parameter[3] = (THE_LCD_PIXEL_WIDTH - 1) & 0xFF;
+    LCD_WriteReg(hlcdc, REG_CASET, parameter, 4);
+    
+    /* Set Row address RASET */
+    parameter[0] = 0x00;
+    parameter[1] = 0x00;
+    parameter[2] = (THE_LCD_PIXEL_HEIGHT - 1) >> 8;
+    parameter[3] = (THE_LCD_PIXEL_HEIGHT - 1) & 0xFF;
+    LCD_WriteReg(hlcdc, REG_RASET, parameter, 4);
+
 #if 0
 
     /*--------------- ST7789 Frame rate setting -------------------------------*/
@@ -249,25 +263,12 @@ static void LCD_Init(LCDC_HandleTypeDef *hlcdc)
     LCD_WriteReg(hlcdc, REG_NV_GAMMA_CTRL, parameter, 14);
 
 #if 0
-
-    /* Set Column address CASET */
-    parameter[0] = 0x00;
-    parameter[1] = 0x00;
-    parameter[2] = 0x00;
-    parameter[3] = THE_LCD_PIXEL_WIDTH - 1;
-    LCD_WriteReg(hlcdc, REG_CASET, parameter, 4);
-    /* Set Row address RASET */
-    parameter[0] = 0x00;
-    parameter[1] = 0x00;
-    parameter[2] = 0x00;
-    parameter[3] = THE_LCD_PIXEL_HEIGHT - 1;
-    LCD_WriteReg(hlcdc, REG_RASET, parameter, 4);
-
+    /* Test pattern - clear screen to black */
     LCD_WriteReg(hlcdc, REG_WRITE_RAM, (uint8_t *)NULL, 0);
 
-    for (uint32_t i = 0; i < 240; i++)
+    for (uint32_t i = 0; i < THE_LCD_PIXEL_HEIGHT; i++)
     {
-        for (uint32_t j = 0; j < 240; j++)
+        for (uint32_t j = 0; j < THE_LCD_PIXEL_WIDTH; j++)
         {
             LCD_IO_WriteData16(0x0000);
         }
