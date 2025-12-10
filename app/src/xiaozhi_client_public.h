@@ -40,7 +40,7 @@
  #define LCD_BRIGHTNESS_DEFAULT LCD_BRIGHTNESS_MID
  #define VOL_MIN_LEVEL          (0)
  #define VOL_MAX_LEVEL          (16)
- #define VOL_DEFAULE_LEVEL      (6)
+ #define VOL_DEFAULE_LEVEL      (10)
  #define UI_EVENT_SHUTDOWN 1
  #define AUDIO_IOCTL_ENABLE_CPU_LOW_SPEED            4   /* parameter type is uint32_t
                                                               1 low speed
