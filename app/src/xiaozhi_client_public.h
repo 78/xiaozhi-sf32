@@ -45,6 +45,7 @@
  #define AUDIO_IOCTL_ENABLE_CPU_LOW_SPEED            4   /* parameter type is uint32_t
                                                               1 low speed
                                                               0 high speed */
+#define CHARGE_DETECT_PIN 44
 
 #ifdef BSP_KEY1_ACTIVE_HIGH
 #define KEY1_ACTIVE_LEVEL 1

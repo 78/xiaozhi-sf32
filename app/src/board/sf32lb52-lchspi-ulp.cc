@@ -71,6 +71,7 @@ void set_pinmux()
     BSP_GPIO_Set(30, 0, 1);
     HAL_PIN_Set(PAD_PA39, GPIO_A39, PIN_PULLDOWN, 1);
     HAL_PIN_Set(PAD_PA40, GPIO_A40, PIN_PULLDOWN, 1);
+    HAL_PIN_Set(PAD_PA34, GPIO_A34, PIN_NOPULL, 1);
 }
 
 HAL_RAM_RET_CODE_SECT(PowerDownCustom, void PowerDownCustom(void))

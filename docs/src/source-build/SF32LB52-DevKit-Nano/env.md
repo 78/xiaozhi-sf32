@@ -89,12 +89,12 @@ git submodule update --init --recursive
 cd C:\xiaozhi-sf32\sdk
 set_env.bat gcc
 cd C:\xiaozhi-sf32\app\project
-scons --board=sf32lb52-nano_52j -j8
+scons --board=sf32lb52-nano_52j --board_search_path="../boards" -j8
 ```
 
 
 ::: tip
-在 `scons` 命令中，`--board` 参数指定了编译的目标板子，`-j8` 参数指定了编译的线程数，可以根据自己的电脑性能进行调整。
+在 `scons` 命令中，`--board` 参数指定了编译的目标板子，`--board_search_path`参数指定了编译的外置板子的路径，`-j8` 参数指定了编译的线程数，可以根据自己的电脑性能进行调整。
 :::
 
 编译成功显示如下图：

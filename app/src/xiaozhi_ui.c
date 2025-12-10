@@ -25,13 +25,14 @@
 #include "xiaozhi_audio.h"
 #include "../kws/app_recorder_process.h"
 #include "../board/board_hardware.h"
+#include "xiaozhi_screen.h"
 
 #define UPDATE_REAL_WEATHER_AND_TIME 11
 #define LCD_DEVICE_NAME "lcd"
 #define TOUCH_NAME "touch"
 #define SCALE_DPX(val) LV_DPX((val) * g_scale)
 #define IDLE_TIME_LIMIT  (20000)
-#define SHOW_TEXT_LEN 100
+#define SHOW_TEXT_LEN 120
 #define CONT_IDLE           0x01
 #define CONT_HIDDEN         0x02
 #define CONT_DEFAULT_STATUS     (CONT_IDLE | CONT_HIDDEN)
@@ -41,13 +42,17 @@
 #define BRT_TB_SIZE     (sizeof(brigtness_tb)/sizeof(brigtness_tb[0]))
 #define BASE_WIDTH 390
 #define BASE_HEIGHT 450
-#define VERSION "V1.3.4"
+#define VERSION "V1.3.5"
 // 默认oled电池图标尺寸
 #define OUTLINE_W 58
 #define OUTLINE_H 33
 // LCD_USING_ST7789电池图标尺寸
 #define OUTLINE_W_ST7789 40
 #define OUTLINE_H_ST7789 20
+
+
+
+
 
 // 定义UI消息类型
 typedef enum {
@@ -67,7 +72,8 @@ typedef enum {
     UI_MSG_UPDATE_WEATHER_AND_TIME,
     UI_MSG_STANDBY_CHAT_OUTPUT,
     UI_MSG_VOLUME_UPDATE,  //更新下拉菜单里面的音量进度条
-    UI_MSG_BRIGHTNESS_UPDATE  //更新下拉菜单里面的亮度进度条
+    UI_MSG_BRIGHTNESS_UPDATE,  //更新下拉菜单里面的亮度进度条
+    UI_MSG_CHARGE_STATUS_CHANGED
 
 } ui_msg_type_t;
 
@@ -85,24 +91,23 @@ static lv_timer_t* standby_update_timer = NULL;
 static rt_timer_t bg_update_timer = NULL;
 static rt_timer_t g_split_text_timer = RT_NULL;
 static lv_obj_t *g_label_for_second_part = NULL;
-static lv_obj_t *cont = NULL;
 static uint8_t cont_status = CONT_DEFAULT_STATUS;
 static uint32_t anim_tick = 0;
-static lv_obj_t *shutdown_label = NULL;
-static int shutdown_countdown = 3;
-static lv_timer_t *shutdown_timer = NULL;
-static volatile int g_shutdown_countdown_active = 0; // 关机倒计时标志
 static rt_device_t lcd_device;
+static lv_obj_t* charging_icon = NULL;
+static lv_obj_t* standby_charging_icon = NULL;
+static rt_timer_t charge_detect_timer = RT_NULL; 
 
+lv_obj_t *cont = NULL;
 lv_timer_t *ui_sleep_timer = NULL;
-lv_obj_t *shutdown_screen = NULL;
-lv_obj_t *sleep_screen = NULL;
-uint8_t i = 0;
 rt_mailbox_t g_ui_task_mb =RT_NULL;
 rt_timer_t update_time_ui_timer = RT_NULL;
 rt_timer_t update_weather_ui_timer = RT_NULL;
 rt_tick_t last_listen_tick = 0;
 uint8_t vad_enable = 1;      //0是支持打断，1是不支持打断
+uint8_t last_charge_status = 0; // 上次充电状态
+lv_obj_t *g_screen_before_low_battery = NULL; //记录低电量关机前的页面
+
 #if defined (KWS_ENABLE_DEFAULT) && KWS_ENABLE_DEFAULT
 uint8_t aec_enabled = 1;
 #else
@@ -121,14 +126,16 @@ extern rt_mailbox_t g_bt_app_mb;
 extern const unsigned char droid_sans_fallback_font[];
 extern const int droid_sans_fallback_font_size;
 extern uint8_t shutdown_state;
+extern lv_obj_t *shutdown_screen; 
+extern lv_obj_t *sleep_screen;
+extern lv_obj_t *low_battery_shutdown_screen;
+extern lv_obj_t *low_battery_warning_screen;
+extern lv_obj_t *g_startup_screen;
+extern bool g_skip_startup; 
 
-// 开机动画相关全局变量
-extern const lv_image_dsc_t startup_logo;  //开机动画图标
+
 static struct rt_semaphore update_ui_sema;
-static lv_obj_t *g_startup_screen = NULL;
-static lv_obj_t *g_startup_img = NULL;
-static lv_anim_t g_startup_anim;
-static bool g_startup_animation_finished = false;
+
 /*Create style with the new font*/
 static lv_style_t style;
 static lv_style_t style2;
@@ -149,6 +156,9 @@ extern BOOL g_pan_connected;
 /*对话界面ble图片资源*/
 extern const lv_image_dsc_t ble; // ble
 extern const lv_image_dsc_t ble_close;
+
+/*充电图标 */
+extern const lv_image_dsc_t cdian2; 
 
 /*对话画面*/
 lv_obj_t *main_container;
@@ -227,196 +237,75 @@ static int g_battery_level = 60;        // 默认为满电
 static lv_obj_t *g_battery_fill = NULL;  // 电池填充对象
 static lv_obj_t *g_battery_label = NULL; // 电量标签
 
-static lv_obj_t *sleep_label = NULL;
-static int sleep_countdown = 3;
-static lv_timer_t *sleep_timer = NULL;
-static volatile int g_sleep_countdown_active = 0; // 休眠倒计时标志
 
-
-static void sleep_countdown_cb(lv_timer_t *timer)
+// 缩放因子计算
+float get_scale_factor(void)
 {
+    lv_disp_t *disp = lv_disp_get_default();
+    lv_coord_t scr_width = lv_disp_get_hor_res(disp);
+    lv_coord_t scr_height = lv_disp_get_ver_res(disp);
+
+    float scale_x = (float)scr_width / 390;  // BASE_WIDTH = 390
+    float scale_y = (float)scr_height / 450; // BASE_HEIGHT = 450
+
+    return (scale_x < scale_y) ? scale_x : scale_y;
+}
+
+static void charge_detect_handler(void *parameter)
+{
+    rt_uint8_t current_status;
+    static int last_battery_level = -1;  // 记录上次的电量，初始化为-1确保第一次会更新
     
-    if (sleep_label && sleep_countdown > 0)
-    {
-        char num[2] = {0};
-        snprintf(num, sizeof(num), "%d", sleep_countdown);
-        lv_label_set_text(sleep_label, num);
-        lv_obj_center(sleep_label);
-        sleep_countdown--;
-    }
-    else
-    {
-        // 清理所有LVGL对象
-        if (sleep_label) {
-            lv_obj_delete(sleep_label);
-            sleep_label = NULL;
-        }
-                if(update_time_ui_timer)
-        {
-            rt_timer_stop(update_time_ui_timer);//睡眠停止ui更新
-        }
-        
-        if(update_weather_ui_timer)
-        {
-            rt_timer_stop(update_weather_ui_timer);
-        }
-
-        lv_timer_delete(sleep_timer);
-        sleep_timer = NULL;
-        g_sleep_countdown_active = 0; // 倒计时结束，清除标志
-        rt_kprintf("sleep countdown ok\n");  
-        if(aec_enabled)
-        {
-            rt_pm_request(PM_SLEEP_MODE_IDLE);
-        }
-        else
-        {
-           rt_pm_release(PM_SLEEP_MODE_IDLE);
-        }
-        lv_obj_clean(sleep_screen);
-        rt_thread_delay(100);
-        gui_pm_fsm(GUI_PM_ACTION_SLEEP);
-    }
-}
-
-void show_sleep_countdown_and_sleep(void)
-{
-    if (g_sleep_countdown_active) return; // 已经在倒计时，直接返回
-    g_sleep_countdown_active = 1;         // 设置标志
-
-    static lv_font_t *g_tip_font = NULL;
-    static lv_font_t *g_big_font = NULL;
+    current_status = rt_pin_read(CHARGE_DETECT_PIN);
     
-    const int tip_font_size = 36;
-    const int big_font_size = 120;
+    // 检查状态是否发生变化，或者电量在100%临界值发生变化
+    bool status_changed = (current_status != last_charge_status);
+    bool battery_critical_change = (last_battery_level < 100 && g_battery_level >= 100) || 
+                                  (last_battery_level >= 100 && g_battery_level < 100);
 
-
-    if (!g_tip_font)
-        g_tip_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, tip_font_size);
-    if (!g_big_font)
-        g_big_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, big_font_size);
-
-    if (!sleep_screen) {
-        sleep_screen = lv_obj_create(NULL);
-        lv_obj_set_style_bg_color(sleep_screen, lv_color_hex(0x000000), 0);
-    }
-    lv_obj_clean(sleep_screen);
-    lv_screen_load(sleep_screen);
-
-    // 顶部“即将休眠”label
-    static lv_style_t style_tip_sleep;
-    lv_style_init(&style_tip_sleep);
-    lv_style_set_text_font(&style_tip_sleep, g_tip_font);
-    lv_style_set_text_color(&style_tip_sleep, lv_color_hex(0xFFFFFF));
-    lv_obj_t *tip_label = lv_label_create(sleep_screen);
-    lv_label_set_text(tip_label, "即将休眠");
-    lv_obj_add_style(tip_label, &style_tip_sleep, 0);
-    lv_obj_align(tip_label, LV_ALIGN_TOP_MID, 0, 20);
-
-    // 中间倒计时数字
-    static lv_style_t style_big_sleep;
-    lv_style_init(&style_big_sleep);
-    lv_style_set_text_font(&style_big_sleep, g_big_font);
-    lv_style_set_text_color(&style_big_sleep, lv_color_hex(0xFFFFFF));
-    sleep_label = lv_label_create(sleep_screen);
-    lv_obj_add_style(sleep_label, &style_big_sleep, 0);
-    lv_obj_center(sleep_label);
-    lv_label_set_text(sleep_label, "3"); 
-
-    sleep_countdown = 3;
-    if (sleep_timer)
-        lv_timer_delete(sleep_timer);
-    sleep_timer = lv_timer_create(sleep_countdown_cb, 1000, NULL);
-
-    // 立即显示第一个数字
-    sleep_countdown_cb(sleep_timer);
-}
-
-static void shutdown_countdown_cb(lv_timer_t *timer)
-{
-    if(i == 1)
+    if (status_changed || battery_critical_change) 
     {
-        lv_timer_delete(shutdown_timer);
-        shutdown_timer = NULL;
-        // 执行关机
-        PowerDownCustom();
-        rt_kprintf("bu gai chu xian\n");  
-    }
-    if (shutdown_label && shutdown_countdown > 0)
-    {
-        char num[2] = {0};
-        snprintf(num, sizeof(num), "%d", shutdown_countdown);
-        lv_label_set_text(shutdown_label, num);
-        lv_obj_center(shutdown_label);
-        shutdown_countdown--;
-    }
-    else
-    {
-        // 清理所有LVGL对象
-        if (shutdown_label) {
-            lv_obj_delete(shutdown_label);
-            shutdown_label = NULL;
-        }
+        last_charge_status = current_status;
+        last_battery_level = g_battery_level;
         
-        g_shutdown_countdown_active = 0; // 倒计时结束，清除标志
-        rt_kprintf("shutdown countdown ok\n");
-        lv_obj_clean(shutdown_screen);
-        rt_thread_delay(200);
-        i = 1;
+        if (current_status == PIN_HIGH) 
+        {
+            xiaozhi_ui_update_charge_status(PIN_HIGH);
+        } 
+        else 
+        {
+            xiaozhi_ui_update_charge_status(PIN_LOW);
+        }
+    } 
+    else 
+    {
+        // 更新电量记录
+        last_battery_level = g_battery_level;
     }
-
 }
-
-void show_shutdown(void)
+static int charge_detect_init(void)
 {
-    if (g_shutdown_countdown_active) return; // 已经在倒计时，直接返回
-    g_shutdown_countdown_active = 1;         // 设置标志
-
-    static lv_font_t *g_tip_font = NULL;
-    static lv_font_t *g_big_font = NULL;
-    const int tip_font_size = 36;
-    const int big_font_size = 120;
-
-    if (!g_tip_font)
-        g_tip_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, tip_font_size);
-    if (!g_big_font)
-        g_big_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, big_font_size);
-
-    if (!shutdown_screen) {
-        shutdown_screen = lv_obj_create(NULL);
-        lv_obj_set_style_bg_color(shutdown_screen, lv_color_hex(0x000000), 0);
+    rt_pin_mode(CHARGE_DETECT_PIN, PIN_MODE_INPUT);  
+    last_charge_status = rt_pin_read(CHARGE_DETECT_PIN);
+    charge_detect_timer  = rt_timer_create("charge_detect", 
+                                          charge_detect_handler,
+                                          RT_NULL,
+                                          rt_tick_from_millisecond(800),
+                                          RT_TIMER_FLAG_PERIODIC | RT_TIMER_FLAG_SOFT_TIMER);
+    
+    if (charge_detect_timer != RT_NULL) 
+    {
+        rt_timer_start(charge_detect_timer);
+        xiaozhi_ui_update_charge_status(last_charge_status);
+        rt_kprintf("Charge detection initialized on PA44\n");
+        return 0;
+    } else 
+    {
+        rt_kprintf("Failed to create charge detection timer\n");
+        return -1;
     }
-    lv_obj_clean(shutdown_screen);
-    lv_screen_load(shutdown_screen);
-
-    // 顶部"准备关机"label
-    static lv_style_t style_tip_shutdown;
-    lv_style_init(&style_tip_shutdown);
-    lv_style_set_text_font(&style_tip_shutdown, g_tip_font);
-    lv_style_set_text_color(&style_tip_shutdown, lv_color_hex(0xFFFFFF));
-    lv_obj_t *tip_label = lv_label_create(shutdown_screen);
-    lv_label_set_text(tip_label, "准备关机");
-    lv_obj_add_style(tip_label, &style_tip_shutdown, 0);
-    lv_obj_align(tip_label, LV_ALIGN_TOP_MID, 0, 20);
-
-    // 中间倒计时数字
-    static lv_style_t style_big_shutdown;
-    lv_style_init(&style_big_shutdown);
-    lv_style_set_text_font(&style_big_shutdown, g_big_font);
-    lv_style_set_text_color(&style_big_shutdown, lv_color_hex(0xFFFFFF));
-    shutdown_label = lv_label_create(shutdown_screen);
-    lv_obj_add_style(shutdown_label, &style_big_shutdown, 0);
-    lv_obj_center(shutdown_label);
-    lv_label_set_text(shutdown_label, "3"); 
-
-    shutdown_countdown = 3;
-    if (shutdown_timer)
-        lv_timer_delete(shutdown_timer);
-    shutdown_timer = lv_timer_create(shutdown_countdown_cb, 1000, NULL);
-
-    // 立即显示第一个数字
-    shutdown_countdown_cb(shutdown_timer);
 }
+
 
 
 void ctrl_wakeup(bool is_wakeup)
@@ -493,28 +382,6 @@ static void ui_free(char* str) {
 }
 
 
-/*开机动画*/
-
-// 获取当前屏幕尺寸并计算缩放因子
-static float get_scale_factor(void)
-{
-    lv_disp_t *disp = lv_disp_get_default();
-    lv_coord_t scr_width = lv_disp_get_hor_res(disp);
-    lv_coord_t scr_height = lv_disp_get_ver_res(disp);
-
-    float scale_x = (float)scr_width / BASE_WIDTH;
-    float scale_y = (float)scr_height / BASE_HEIGHT;
-
-    return (scale_x < scale_y) ? scale_x : scale_y;
-}
-// 开机动画淡入淡出回调
-static void startup_fade_anim_cb(void *var, int32_t value)
-{
-    if (g_startup_img) {
-        lv_obj_set_style_img_opa(g_startup_img, (lv_opa_t)value, 0);
-    }
-}
-
 void ui_sleep_callback(lv_timer_t *timer)
 {
     rt_kprintf("in dai_ji,so xiu mian");
@@ -545,53 +412,8 @@ static void standby_update_callback(lv_timer_t *timer)
 }
 
 
-// 淡出完成回调
-static void startup_fadeout_ready_cb(struct _lv_anim_t* anim)
-{
-    // 隐藏开机画面
-    if (g_startup_screen) {
-        lv_obj_add_flag(g_startup_screen, LV_OBJ_FLAG_HIDDEN);
-    }
-    g_startup_animation_finished = true;
-    rt_kprintf("Startup animation completed\n");
 
-        // 开机动画完成后显示待机画面
-    if (standby_screen) {
-        rt_kprintf("开机->待机");
-        lv_screen_load(standby_screen);
-        lv_obj_set_parent(cont, lv_screen_active());
-        lv_obj_move_foreground(cont);
-    }
 
-}
-
-// 定时器回调：用于延时后开始淡出动画
-static void startup_fadeout_timer_cb(lv_timer_t *timer)
-{
-    // 停止定时器
-    lv_timer_del(timer);
-    
-    // 开始淡出动画
-    lv_anim_init(&g_startup_anim);
-    lv_anim_set_var(&g_startup_anim, g_startup_img);
-    lv_anim_set_values(&g_startup_anim, 255, 0); // 淡出
-    lv_anim_set_time(&g_startup_anim, 800); // 0.8秒淡出
-    lv_anim_set_exec_cb(&g_startup_anim, startup_fade_anim_cb);
-    lv_anim_set_ready_cb(&g_startup_anim, startup_fadeout_ready_cb);
-    lv_anim_start(&g_startup_anim);
-    
-    rt_kprintf("Starting fadeout animation\n");
-}
-
-// 开机动画淡入完成回调
-static void startup_anim_ready_cb(struct _lv_anim_t* anim)
-{
-    // 使用LVGL定时器代替rt_thread_mdelay，避免在动画回调中阻塞
-    lv_timer_t *fadeout_timer = lv_timer_create(startup_fadeout_timer_cb, 1500, NULL);
-    lv_timer_set_repeat_count(fadeout_timer, 1); // 只执行一次
-    
-    rt_kprintf("Startup fadein completed, waiting 1.5s before fadeout\n");
-}
 
 
 static void switch_cont_anim(bool hidden);
@@ -886,8 +708,17 @@ static void line_event_handler(struct _lv_event_t* e)
 
 rt_err_t xiaozhi_ui_obj_init()
 {
-
-        // 获取屏幕分辨率
+    // 如果是低电量模式，只创建基本的屏幕，不创建对话界面
+    if (!g_skip_startup) {
+        rt_kprintf("Low battery mode: skipping normal UI initialization\n");
+        
+        // 只创建一个基本的黑屏，其他什么都不做
+        lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+        
+        return RT_EOK;
+    }
+    
+    // 获取屏幕分辨率
     lv_coord_t scr_width = lv_disp_get_hor_res(NULL);
     lv_coord_t scr_height = lv_disp_get_ver_res(NULL);
    
@@ -1019,6 +850,12 @@ rt_err_t xiaozhi_ui_obj_init()
     lv_obj_set_style_text_font(battery_percent_label, font_medium, 0);
     lv_obj_align(battery_percent_label, LV_ALIGN_CENTER, 0, 0); // 在圆弧中心
 
+    standby_charging_icon = lv_img_create(battery_arc);
+    lv_img_set_src(standby_charging_icon, &cdian2);
+    lv_obj_set_size(standby_charging_icon, 24, 24); // 设置合适的尺寸
+    lv_obj_align(standby_charging_icon, LV_ALIGN_CENTER, 0, 0); // 在圆弧中心对齐
+    lv_obj_add_flag(standby_charging_icon, LV_OBJ_FLAG_HIDDEN); // 初始隐藏
+
 
 //天气
     weather_bgimg = lv_img_create(standby_screen);
@@ -1131,6 +968,7 @@ rt_err_t xiaozhi_ui_obj_init()
     lv_label_set_text(ui_Label3, "等待连接");
 
     LV_IMAGE_DECLARE(ble);
+    LV_IMAGE_DECLARE(cdian2);
     LV_IMAGE_DECLARE(ble_close);
 
 
@@ -1278,14 +1116,21 @@ rt_err_t xiaozhi_ui_obj_init()
     // lv_obj_add_style(g_battery_label, &style_battery, 0);
     lv_label_set_text_fmt(g_battery_label, "%d%%", g_battery_level);
     lv_obj_align(g_battery_label, LV_ALIGN_CENTER, 0, 0);
+    
+ //充电图标       
+    charging_icon = lv_img_create(header_row);
+    lv_img_set_src(charging_icon, &cdian2);
+    lv_obj_set_size(charging_icon, 32, 32);
+    lv_obj_add_flag(charging_icon, LV_OBJ_FLAG_HIDDEN); // 初始隐藏
+    lv_obj_align_to(charging_icon, battery_outline, LV_ALIGN_OUT_LEFT_MID, 0, 0);
 
     // 插入右侧空白对象用于对称布局
     lv_obj_t *spacer_right = lv_obj_create(header_row);
     lv_obj_remove_flag(spacer_right, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_opa(spacer_right, LV_OPA_0, 0);
     lv_obj_set_style_border_width(spacer_right, 0, 0);
-    lv_obj_set_size(spacer_right, SCALE_DPX(40),
-                    LV_SIZE_CONTENT); // 宽度为 40dp
+    lv_obj_set_size(spacer_right, SCALE_DPX(50),
+                    LV_SIZE_CONTENT); // 宽度为 50dp
 
     // ====== 中间 GIF 图片容器 img_container ======
     img_container = lv_obj_create(main_container);
@@ -1327,67 +1172,8 @@ rt_err_t xiaozhi_ui_obj_init()
     lv_obj_set_style_text_align(global_label2, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(global_label2, LV_ALIGN_TOP_MID, 0, 30);
 
-/*-------------添加开机动画--------------------*/
-
-
-    rt_kprintf("Creating startup animation\n");
+    show_startup_animation();
     
-    // 检查startup_logo是否可用
-    if (&startup_logo == NULL) {
-        rt_kprintf("Warning: startup_logo not available, skipping animation\n");
-        g_startup_animation_finished = true;
-        return RT_ERROR;
-    }
-
-    // 创建全屏启动画面
-    g_startup_screen = lv_obj_create(lv_screen_active());
-    if (!g_startup_screen) {
-        rt_kprintf("Error: Failed to create startup screen\n");
-        g_startup_animation_finished = true;
-        return RT_ERROR;
-    }
-    
-    lv_obj_remove_style_all(g_startup_screen);
-    lv_obj_set_size(g_startup_screen, lv_disp_get_hor_res(NULL), lv_disp_get_ver_res(NULL));
-    lv_obj_set_style_bg_color(g_startup_screen, lv_color_hex(0x000000), 0); // 黑色背景
-    lv_obj_set_style_bg_opa(g_startup_screen, LV_OPA_COVER, 0);
-    lv_obj_clear_flag(g_startup_screen, LV_OBJ_FLAG_CLICKABLE);
-    
-    // 创建图片对象 - 与蓝牙图标创建方式完全相同
-    g_startup_img = lv_img_create(g_startup_screen);
-    if (!g_startup_img) {
-        rt_kprintf("Error: Failed to create startup image\n");
-        lv_obj_del(g_startup_screen);
-        g_startup_screen = NULL;
-        g_startup_animation_finished = true;
-        return RT_ERROR;
-    }
-    
-    lv_img_set_src(g_startup_img, &startup_logo);  // 使用相同的显示方式
-    lv_obj_center(g_startup_img); // 居中显示
-    lv_obj_set_style_img_opa(g_startup_img, LV_OPA_0, 0); // 初始完全透明
-    
-    // 设置图片大小 - 针对200×102分辨率的logo优化
-    // 保持宽高比 200:102 ≈ 1.96:1，在屏幕上显示为合适尺寸
-    lv_obj_set_size(g_startup_img, SCALE_DPX(180), SCALE_DPX(92)); // 宽180dp，高92dp
-    lv_img_set_zoom(g_startup_img, (int)(LV_SCALE_NONE * g_scale)); // 根据缩放因子缩放
-    
-    // 确保启动画面在最顶层
-    lv_obj_move_foreground(g_startup_screen);
-    
-    // 开始淡入动画
-    lv_anim_init(&g_startup_anim);
-    lv_anim_set_var(&g_startup_anim, g_startup_img);
-    lv_anim_set_values(&g_startup_anim, 0, 255); // 淡入
-    lv_anim_set_time(&g_startup_anim, 800); // 0.8秒淡入
-    lv_anim_set_exec_cb(&g_startup_anim, startup_fade_anim_cb);
-    lv_anim_set_ready_cb(&g_startup_anim, startup_anim_ready_cb);
-    lv_anim_start(&g_startup_anim);
-    
-    rt_kprintf("Startup animation started\n");
-
-
-
     return RT_EOK;
 }
 
@@ -1431,6 +1217,33 @@ void xiaozhi_ui_update_brightness(int brightness)
                 rt_free(msg);
             }
         }
+    }
+}
+//充电状态更新函数
+void xiaozhi_ui_update_charge_status(uint8_t is_charging)
+{
+    if (ui_msg_queue != RT_NULL) 
+    {
+        ui_msg_t* msg = (ui_msg_t*)rt_malloc(sizeof(ui_msg_t));
+        if (msg != RT_NULL) {
+            msg->type = UI_MSG_CHARGE_STATUS_CHANGED;
+            msg->data = (char*)rt_malloc(sizeof(uint8_t));
+            if (msg->data != RT_NULL) {
+                *((uint8_t*)msg->data) = is_charging;
+                if (rt_mq_send(ui_msg_queue, &msg, sizeof(ui_msg_t*)) != RT_EOK) {
+                    LOG_E("Failed to send charge status update UI message");
+                    rt_free(msg->data);
+                    rt_free(msg);
+                }
+            } else {
+                rt_free(msg);
+               
+            }
+        }
+    }
+    else 
+    {
+        rt_kprintf("ui_msg_queue = null\n");
     }
 }
 
@@ -1686,10 +1499,23 @@ static void pm_event_handler(gui_pm_event_type_t event)
     {
         LOG_I("in GUI_PM_EVT_SUSPEND");
         lv_timer_enable(false);
+        // 停止充电检测定时器
+        if (charge_detect_timer != RT_NULL) 
+        {
+            rt_timer_stop(charge_detect_timer);
+            rt_kprintf("Charge detect timer stopped\n");
+        }
         break;
     }
     case GUI_PM_EVT_RESUME:
     {
+        // 重新启动充电检测定时器
+        if (charge_detect_timer != RT_NULL) 
+        {
+            rt_timer_start(charge_detect_timer);
+            rt_kprintf("Charge detect timer restarted\n");
+        }
+
         if(update_time_ui_timer)
         {
             rt_timer_start(update_time_ui_timer);//醒来继续开定时器更新ui
@@ -1757,7 +1583,6 @@ void xiaozhi_update_battery_level(int level)
 {
     // 确保电量在 0 到 100 之间
     g_battery_level = level;
-    //rt_kprintf("Battery level updated: %d\n", g_battery_level);
     if (g_battery_fill)
     {
 #ifdef LCD_USING_ST7789
@@ -1810,10 +1635,11 @@ void xiaozhi_update_battery_level(int level)
     }
     
     // 更新电池电量百分比文本
-    if (battery_percent_label) {
+    if (battery_percent_label) 
+    {
         lv_label_set_text_fmt(battery_percent_label, "%d%%", g_battery_level);
     }
-
+    
 }
 
 
@@ -1847,8 +1673,50 @@ void xiaozhi_ui_task(void *args)
 #ifdef BSP_USING_PM
     pm_ui_init();
 #endif
-
-    float scale = get_scale_factor();
+    // 如果是低电量模式，简化初始化
+    if (!g_skip_startup) 
+    {
+        rt_kprintf("Low battery mode: simplified UI task initialization\n");
+        
+        // 只创建必要的字体和样式
+        float scale = get_scale_factor();
+        g_scale = scale;
+        
+        const int base_font_size = 30;
+        const int adjusted_font_size = (int)(base_font_size * scale + 0.5f);
+        
+        lv_style_init(&style);
+        lv_font_t *font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, adjusted_font_size);
+        lv_style_set_text_font(&style, font);
+        lv_style_set_text_align(&style, LV_TEXT_ALIGN_CENTER);
+        lv_style_set_text_color(&style, lv_color_hex(0xFFFFFF));
+        lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+        
+        ret = xiaozhi_ui_obj_init();
+        if (ret != RT_EOK) {
+            return;
+        }
+        
+        // 低电量模式下的简化主循环
+        while (1) {
+            rt_uint32_t ui_event;
+            
+            // 只处理低电量相关的UI事件
+            if (rt_mb_recv(g_ui_task_mb, &ui_event, 0) == RT_EOK) {
+                if (ui_event == UI_EVENT_LOW_BATTERY_WARNING) {
+                    show_low_battery_warning();
+                }
+            }
+            
+            if (RT_EOK == rt_sem_trytake(&update_ui_sema)) {
+                ms = lv_task_handler();
+                rt_thread_mdelay(ms);
+                rt_sem_release(&update_ui_sema);
+            }
+        }
+        return; // 低电量模式下不执行后续的正常初始化
+    }
+float scale = get_scale_factor();
 
 const int medium_font_size = (int)(25 * scale + 0.5f);    // 秒显示
 // 创建不同大小的字体并赋值给全局变量
@@ -1885,6 +1753,8 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
     {
         return;
     }
+
+    charge_detect_init(); // 初始化充电检测
 
     xiaozhi_ui_update_ble("close");
     xiaozhi_ui_chat_status("连接中...");
@@ -1936,6 +1806,15 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
             {
                 show_shutdown();
             }
+            else if (ui_event == UI_EVENT_LOW_BATTERY_SHUTDOWN)
+            {
+                g_screen_before_low_battery = lv_screen_active();
+                show_low_battery_shutdown();
+            }
+            else if (ui_event == UI_EVENT_LOW_BATTERY_WARNING)  
+            {
+                show_low_battery_warning();
+            }
         }
         // 处理按钮事件
         if (rt_mb_recv(g_button_event_mb, &btn_event, 0) == RT_EOK)
@@ -1944,7 +1823,7 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
             switch (btn_event)
             {
             case BUTTON_EVENT_PRESSED:
-                    //ws_send_speak_abort(&g_xz_ws.clnt, g_xz_ws.session_id,kAbortReasonWakeWordDetected);                                           
+                    ws_send_speak_abort(&g_xz_ws.clnt, g_xz_ws.session_id,kAbortReasonWakeWordDetected);                                           
                     xz_speaker(0); // 关闭扬声器
 					rt_kprintf("vad_enabled jjjjjk\n");
 #ifdef BSP_USING_PM
@@ -1977,6 +1856,7 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
            // rt_kprintf("Battery level received: %d\n", battery_level);
             xiaozhi_update_battery_level(battery_level);
         }
+        
         // 处理UI消息队列中的消息
         ui_msg_t* msg;
         while (rt_mq_recv(ui_msg_queue, &msg, sizeof(ui_msg_t*), 0) == RT_EOK)
@@ -2113,7 +1993,54 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
                             }
                         }
                     }
-                    break;      
+                    break;
+                case UI_MSG_CHARGE_STATUS_CHANGED:
+                    if(msg->data) {
+                        uint8_t is_charging = *((uint8_t*)msg->data);
+                        bool should_show_charging = is_charging && (g_battery_level < 100);
+                        if (charging_icon) 
+                        {
+                            if (should_show_charging) 
+                            {
+                                lv_obj_clear_flag(charging_icon, LV_OBJ_FLAG_HIDDEN);
+                                rt_kprintf("显示充电图标\n");
+                            } 
+                            else 
+                            {
+                               if (is_charging && g_battery_level >= 100) 
+                                {
+                                    rt_kprintf("电量已满，隐藏充电图标 (电量: %d%%)\n", g_battery_level);
+                                    lv_obj_add_flag(charging_icon, LV_OBJ_FLAG_HIDDEN);
+                                } 
+                                else 
+                                {
+                                    rt_kprintf("隐藏充电图标\n");
+                                    lv_obj_add_flag(charging_icon, LV_OBJ_FLAG_HIDDEN);
+                                }
+                            }
+                        }
+                        if (standby_charging_icon) 
+                        {
+                            if (should_show_charging) 
+                            {
+                                lv_obj_clear_flag(standby_charging_icon, LV_OBJ_FLAG_HIDDEN);
+                                rt_kprintf("显示待机界面充电图标 (电量: %d%%)\n", g_battery_level);
+                            } 
+                            else 
+                            {
+                                lv_obj_add_flag(standby_charging_icon, LV_OBJ_FLAG_HIDDEN);
+                                if (is_charging && g_battery_level >= 100) 
+                                {
+                                    rt_kprintf("电量已满，隐藏待机界面充电图标 (电量: %d%%)\n", g_battery_level);
+                                } 
+                                else 
+                                {
+                                    rt_kprintf("隐藏待机界面充电图标\n");
+                                }
+                            }
+                        }
+                    }
+                break;      
                 case UI_MSG_UPDATE_EMOJI:
                     if(msg->data)
                     {
@@ -2258,7 +2185,7 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
                             if (!g_split_text_timer) {
                                 g_split_text_timer = rt_timer_create(
                                     "next_text", switch_to_second_part, NULL,
-                                    rt_tick_from_millisecond(6000), // 9秒后显示下一部分
+                                    rt_tick_from_millisecond(7000), // 6.5秒后显示下一部分
                                     RT_TIMER_FLAG_ONE_SHOT | RT_TIMER_FLAG_SOFT_TIMER);
                             } else {
                                 rt_timer_stop(g_split_text_timer);
@@ -2301,7 +2228,7 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
 
                             // 重置定时器以显示下一部分
                             rt_timer_control(g_split_text_timer, RT_TIMER_CTRL_SET_TIME,
-                                            &(rt_tick_t){rt_tick_from_millisecond(6000)});
+                                            &(rt_tick_t){rt_tick_from_millisecond(7000)});
                             rt_timer_start(g_split_text_timer);
                         } else {
                             // 最后一部分，直接显示
@@ -2327,8 +2254,8 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
             //rt_kprintf("current_screen: %p, main_container: %p\n", current_screen, main_container);
             //rt_kprintf("inactive_time: %d, limit: %d\n", lv_display_get_inactive_time(NULL), IDLE_TIME_LIMIT);
             if (lv_display_get_inactive_time(NULL) > IDLE_TIME_LIMIT && current_screen != standby_screen && current_screen != g_startup_screen && current_screen != shutdown_screen &&
-    current_screen != sleep_screen)
-            {
+    current_screen != sleep_screen && current_screen != low_battery_shutdown_screen && g_pan_connected) //如果当前满足了屏幕不活跃的时间，并且当前屏幕不是待机屏幕，当前屏幕不是开机启动屏幕，当前屏幕不是关机屏幕，当前屏幕不是睡眠屏幕
+            {                       //加这些条件的限制是为了保证只有在对话界面才会进入休眠阶段
 
                 rt_kprintf("listen_tick\n");
                 last_listen_tick= 1;
@@ -2385,28 +2312,7 @@ font_medium = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, medium_fo
             }
 
 #ifdef BSP_USING_PM
-            // if (strcmp(current_text, "聆听中...") == 0)
-            // {
-            //     lv_display_trigger_activity(NULL);
-            // }
-            // if (lv_display_get_inactive_time(NULL) > IDLE_TIME_LIMIT && g_pan_connected && she_bei_ma)
-            // {
-            //         lv_display_trigger_activity(NULL);
-            //         LOG_I("30s no action \n");
-            //         bt_interface_wr_link_policy_setting(
-            //         (unsigned char *)&g_bt_app_env.bd_addr,
-            //         BT_NOTIFY_LINK_POLICY_SNIFF_MODE | BT_NOTIFY_LINK_POLICY_ROLE_SWITCH); // open role switch
-            //         MCP_RGBLED_CLOSE();
-            //         rt_kprintf("time out,xiu_mian\n");
-            //         if (standby_screen) 
-            //         {
-            //             ui_swith_to_standby_screen();
 
-            //         }
-                
-            
-            // }
-        
             if (gui_is_force_close())
             {
                 LOG_I("in force_close");

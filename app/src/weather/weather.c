@@ -911,7 +911,8 @@ void xiaozhi_time_weather(void)//获取最新时间和天气
         {
             retry_count++;
             LOG_W("Initial time synchronization failed, retrying... attempt %d", retry_count);
-            if (retry_count < max_retries) {
+            if (retry_count < max_retries) 
+            {
                 rt_thread_mdelay(3000); // 等待3秒后重试
             } 
             else 

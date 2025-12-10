@@ -155,3 +155,40 @@ iOS同样需要打开蓝牙共享网络功能，以下是参考步骤
 
 | ![](image/pan_rec.png){width=30%} | ![](image/pan_rec_sucf.png){width=30%}
 
+## 电池曲线
+### 获取电池曲线
+程序中默认提供的曲线表可能与您实际使用的电池不匹配，从而导致电量显示不准确。为确保电量显示的准确性，我们推荐您使用官方默认电池：
+
+**购买链接**: [淘宝官方旗舰店 - SiFli官方同款电池](https://item.taobao.com/item.htm?abbucket=12&id=938718221597&mi_id=0000tb_9vrJ-SsxMUIsW-1kfO28IuJD11JqF__CKtcmsCTQ&ns=1&skuId=5834126861696&spm=a21n57.1.hoverItem.6&utparam=%7B%22aplus_abtest%22%3A%22fb56882eb25a9781979c75e66efb6a72%22%7D&xxc=taobaoSearch)
+
+或者如果您使用的是第三方电池或电池容量与官方电池不同，为保证电量显示的准确性，您需要获取相应的电池曲线：
+1. **联系电池供应商**: 向电池商家索取该型号电池的放电/充电曲线数据
+2. **自行测试获取曲线**: 若具备相关条件，可自行测试并生成对应的曲线表
+
+### 替换曲线表
+获取到合适的电池曲线后，请按以下步骤替换默认曲线表：
+
+1. 找到电池配置文件 `battery_table.c`
+2. 替换 `discharge_curve_table` 和 `charging_curve_table` 数组
+3. 确保电压值按从高到低顺序排列
+4. 更新表大小参数
+5. 重新编译并烧录固件
+
+```c
+// 替换为新的曲线表
+const battery_lookup_point_t charging_curve_table[] ={
+    // 从供应商获取的放电曲线数据
+    {100, 41998},
+    {99, 41864},
+    // ...其他数据点
+    {0, 35000}
+};
+
+const battery_lookup_point_t discharge_curve_table[] ={
+    // 从供应商获取的放电曲线数据
+    {100, 41998},
+    {99, 41864},
+    // ...其他数据点
+    {0, 35000}
+};
+```

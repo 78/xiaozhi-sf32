@@ -89,12 +89,13 @@ ble_common_update_type_t ble_request_public_address(bd_addr_t *addr)
     uint8_t mac[6] = {0};
     int ret = 0;
     int read_len = rt_flash_config_read(FACTORY_CFG_ID_MAC, mac, 6);
+    // OTP没有内容，用UID生成MAC
     if (read_len == 0)
-    {
-        // OTP没有内容，用UID生成MAC
+    {    
         ret = bt_mac_addr_generate_via_uid_v2(addr);
         if (ret != 0)
         {   
+            //uid生成失败
             rt_kprintf("uid get mac fail: %d", ret);
             return BLE_UPDATE_NO_UPDATE;
         }
