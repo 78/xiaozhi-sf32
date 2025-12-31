@@ -28,4 +28,9 @@ export const zhNavbar = navbar([
     text: "自定义",
     icon: "fa-solid fa-wrench",
   },
+  {
+    link: "/course-documents/",
+    text: "课程文档",
+    icon: "fa-solid fa-book",
+  },
 ]);
