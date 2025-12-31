@@ -21,7 +21,6 @@ icon: lightbulb
 - [使用ui界面烧录固件](./sftool_gui.md)
 - [使用终端命令烧录固件](./sftool_cmd.md)
 
-
 ## 蓝牙使用注意事项
 
 在连接板子设备之前，请打开手机的蓝牙网络共享功能！！！
@@ -148,3 +147,4 @@ const battery_lookup_point_t discharge_curve_table[] ={
 
 更多信息可以参考：
 (https://docs.sifli.com/projects/sdk/latest/sf32lb52x/middleware/battery_calculator.html)
+
