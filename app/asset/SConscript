@@ -44,7 +44,7 @@ if 16 == GetConfigValue('LV_COLOR_DEPTH'):
 else:
     img_flags = '-rgb888'
 
-img_flags = img_flags + '  -section ROM3_IMG  -lvgl_version 9 '
+img_flags = img_flags + ' -lvgl_version 9 '
 
 if GetDepend('EZIP_PAL_SUPPORT'):
     if GetDepend('EZIP_PAL_SUPPORT_1'):
@@ -58,7 +58,13 @@ else:
     ers_v = '128'
 
 
-objs += Env.ImgResource(objs_ezip, img_flags+' -cfile 2 -dpt 1')
+# Check if EZIP_BINARY_MODE macro is defined
+if GetDepend('EZIP_BINARY_MODE'):
+    # Generate ezip binary files to current directory (which is the build directory due to variant_dir)
+    objs += Env.ImgResource(objs_ezip, img_flags+' -binfile 2 -binext .ezip -dpt 1 -detailcf 16')
+else:
+    # Default: generate C files (original behavior)
+    objs += Env.ImgResource(objs_ezip, img_flags+' -section ROM3_IMG -cfile 2 -dpt 1')
 
 
 if GetOption('no_cc'):

@@ -4,7 +4,4 @@ config BSP_USING_BOARD_SF32LB52_XTY_AI
     select BF0_HCPU
     default y
 
-config LOW_POWER_NO_SHUTDOWN
-    bool "low power dont shutdown"
-	default y  
 rsource "../Kconfig.board"

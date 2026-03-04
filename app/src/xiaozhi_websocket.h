@@ -18,6 +18,7 @@ extern "C"
 #include <cJSON.h>
 #include "button.h"
 #include "audio_server.h"
+#define WEBSOC_RECONNECT 4
 
 void xiaozhi2(int argc, char **argv);
 void xz_ws_button_init(void); // 对话键

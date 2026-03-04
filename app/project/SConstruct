@@ -44,5 +44,50 @@ AddDFU_PAN(SIFLI_SDK)
 # Add flash table buld.
 AddFTAB(SIFLI_SDK,rtconfig.CHIP)
 
+#-------------------------- file_system -------------------------- start
+
+import tempfile
+import shutil
+from pathlib import Path
+
+# 创建指定名称的中间目录 'file_system' 用于合并所有文件系统资源
+file_system_dir = os.path.join(env['build_dir'], 'file_system')
+
+# 确保中间目录存在
+os.makedirs(file_system_dir, exist_ok=True)
+
+source_dirs = []
+
+# 添加现有的文件系统镜像
+if GetDepend('EZIP_BINARY_MODE'):
+    # 在EZIP模式下，使用构建目录中包含.ezip文件的资产目录
+    build_dir = rtconfig.OUTPUT_DIR
+    source_dirs.append(os.path.join(build_dir, "asset_ezip"))
+
+if GetDepend('TINY_TTF_MODE'):
+    source_dirs.append("../font")
+
+# 合并所有源目录到中间目录
+for src_dir in source_dirs:
+    if os.path.exists(src_dir):
+        for root, dirs, files in os.walk(src_dir):
+            for file in files:
+                src_file = os.path.join(root, file)
+                rel_path = os.path.relpath(src_file, src_dir)
+                dst_file = os.path.join(file_system_dir, rel_path)
+                
+                # 确保目标目录存在
+                os.makedirs(os.path.dirname(dst_file), exist_ok=True)
+                
+                # 复制文件
+                shutil.copy2(src_file, dst_file)
+
+# 只构建一次文件系统
+if source_dirs:  # 如果有源目录需要处理
+    fs_bin = FileSystemBuild(file_system_dir, env)
+    AddCustomImg("fs_root", bin=[fs_bin])
+
+# ---------------- file_system ----------------end
+
 # Generate download .bat script
 GenDownloadScript(env)

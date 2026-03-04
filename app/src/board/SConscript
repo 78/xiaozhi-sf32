@@ -15,6 +15,8 @@ elif GetDepend(['BSP_USING_BOARD_SF32LB52_LCD_N16R8']):
     src += Glob('sf32lb52-lcd_n16r8.cc')
 elif GetDepend(['BSP_USING_BOARD_SF32LB52_XTY_AI_THT']):
     src += Glob('sf32lb52-xty-ai_tht.cc')
+elif GetDepend(['BSP_USING_BOARD_SF32LB52_NANO_A128R16']):
+    src += Glob('sf32lb52-nano_a128r16.cc')
 group = DefineGroup('board', src, depend = [], CPPPATH = path)
 
 Return('group')

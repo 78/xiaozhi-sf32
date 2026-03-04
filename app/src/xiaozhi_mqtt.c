@@ -29,8 +29,8 @@
 #include "./iot/iot_c_api.h"
 #include "./mcp/mcp_api.h"
 #include "xiaozhi_ui.h"
-
-
+#include "lv_async.h"
+#include "xiaozhi_screen.h"
 
 xiaozhi_context_t g_xz_context;
 
@@ -51,10 +51,10 @@ static const char *hello_message =
 
 static const char *mode_str[] = {"auto", "manual", "realtime"};
 
-static rt_tick_t g_speaking_start_tick = 0;  // 讲话开始时间
-static rt_tick_t g_total_speaking_time = 0;  // 累计讲话时间
-static bool g_is_speaking = false;           // 是否正在讲话
-#define SPEAKING_THRESHOLD_MS (5 * 60 * 1000) // 5分钟阈值 (毫秒)
+static rt_tick_t g_speaking_start_tick = 0;       // 讲话开始时间
+static rt_tick_t g_total_speaking_time = 0;       // 累计讲话时间
+static bool g_is_speaking = false;                // 是否正在讲话
+    #define SPEAKING_THRESHOLD_MS (5 * 60 * 1000) // 5分钟阈值 (毫秒)
 
 void my_mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len);
 void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len,
@@ -129,7 +129,7 @@ void my_mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len)
 
     topic_buf_pool->wr_idx = (topic_buf_pool->wr_idx + 1) & 1;
 }
-extern rt_tick_t last_listen_tick; 
+extern rt_tick_t last_listen_tick;
 void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len,
                               u8_t flags)
 {
@@ -194,12 +194,14 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len,
         char *session_id = cJSON_GetObjectItem(root, "session_id")->valuestring;
         strncpy(ctx->session_id, session_id, 9);
         mqtt_g_state = kDeviceStateIdle;
+        // 安排在 LVGL 线程中刷新通话页面顶部文案
+        lv_async_call(xiaozhi_call_screen_update_connection_status_async, NULL);
         xz_audio_init();
         bt_interface_exit_sniff_mode(
-        (unsigned char *)&g_bt_app_env.bd_addr); // exit sniff mode
+            (unsigned char *)&g_bt_app_env.bd_addr); // exit sniff mode
         bt_interface_wr_link_policy_setting(
-        (unsigned char *)&g_bt_app_env.bd_addr,
-        BT_NOTIFY_LINK_POLICY_ROLE_SWITCH); // close role switch
+            (unsigned char *)&g_bt_app_env.bd_addr,
+            BT_NOTIFY_LINK_POLICY_ROLE_SWITCH); // close role switch
 
         mqtt_listen_start(&g_xz_context, kListeningModeAlwaysOn);
         xiaozhi_ui_chat_output("小智 已连接!");
@@ -210,7 +212,8 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len,
     else if (strcmp(type, "goodbye") == 0)
     {
         mqtt_g_state = kDeviceStateUnknown;
-
+        // 安排在 LVGL 线程中刷新通话页面顶部文案
+        lv_async_call(xiaozhi_call_screen_update_connection_status_async, NULL);
         xiaozhi_ui_chat_output("等待唤醒...");
         xiaozhi_ui_chat_status("睡眠中...");
         xiaozhi_ui_update_emoji("sleep");
@@ -235,21 +238,25 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len,
         else if (strcmp(state, "stop") == 0)
         {
 
-             // 计算本次讲话时间并累加
-            if (g_is_speaking) 
+            // 计算本次讲话时间并累加
+            if (g_is_speaking)
             {
                 rt_tick_t current_tick = rt_tick_get();
-                rt_tick_t speaking_duration = current_tick - g_speaking_start_tick;
+                rt_tick_t speaking_duration =
+                    current_tick - g_speaking_start_tick;
                 g_total_speaking_time += speaking_duration;
                 g_is_speaking = false;
-                
-                rt_kprintf("xiaozhi total_speaking_time: %d ticks\n", g_total_speaking_time);
+
+                rt_kprintf("xiaozhi total_speaking_time: %d ticks\n",
+                           g_total_speaking_time);
                 // 检查是否达到5分钟阈值
-                if (g_total_speaking_time >= rt_tick_from_millisecond(SPEAKING_THRESHOLD_MS)) 
+                if (g_total_speaking_time >=
+                    rt_tick_from_millisecond(SPEAKING_THRESHOLD_MS))
                 {
-                    rt_kprintf("Speaking time reached 5 minutes, reinitializing audio\n");
+                    rt_kprintf("Speaking time reached 5 minutes, "
+                               "reinitializing audio\n");
                     g_total_speaking_time = 0; // 重置累计时间
-                    xiaozhi_ui_reinit_audio();     // 重新初始化音频
+                    xiaozhi_ui_reinit_audio(); // 重新初始化音频
                 }
             }
             mqtt_g_state = kDeviceStateIdle;
@@ -271,11 +278,13 @@ void my_mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len,
         mqtt_g_state = kDeviceStateSpeaking;
         xz_speaker(1);
     }
-    else if (strcmp(type, "llm") ==0) // {"type":"llm", "text": "😊", "emotion": "smile"}
+    else if (strcmp(type, "llm") ==
+             0) // {"type":"llm", "text": "😊", "emotion": "smile"}
 
     {
         rt_kputs(cJSON_GetObjectItem(root, "emotion")->valuestring);
-        xiaozhi_ui_update_emoji(cJSON_GetObjectItem(root, "emotion")->valuestring);
+        xiaozhi_ui_update_emoji(
+            cJSON_GetObjectItem(root, "emotion")->valuestring);
     }
     else if (strcmp(type, "mcp") == 0)
     {
@@ -312,7 +321,7 @@ void mqtt_hello(xiaozhi_context_t *ctx)
     LOCK_TCPIP_CORE();
     if (mqtt_client_is_connected(&(ctx->clnt)))
     {
-        
+
         mqtt_publish(&(ctx->clnt), ctx->publish_topic, hello_message,
                      strlen(hello_message), 0, 0, my_mqtt_request_cb, ctx);
     }

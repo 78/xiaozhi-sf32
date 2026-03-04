@@ -17,4 +17,6 @@ void show_low_battery_shutdown(void);
 void show_sleep_countdown_and_sleep(void);
 void show_low_battery_warning(void);
 void show_startup_animation(void);
+void show_call_screen(void);
+void xiaozhi_call_screen_update_connection_status_async(void *user_data);
 #endif // XIAOZHI_SCREEN_H

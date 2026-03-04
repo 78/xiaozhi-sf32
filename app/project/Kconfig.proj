@@ -38,3 +38,23 @@ config KWS_ENABLE_DEFAULT
     default n
     help
         Enable KWS (Keyword Spotting) by default in the application. 
+
+
+# EZIP
+config EZIP_BINARY_MODE
+    bool "Enable EZIP binary mode"
+    depends on BSP_USING_BOARD_SF32LB52_NANO_A128R16
+    default y
+    help
+        Enable EZIP binary mode for image resources.
+# TINY_TTF
+config TINY_TTF_MODE
+    bool "Enable Tiny TTF font support"
+    depends on BSP_USING_BOARD_SF32LB52_NANO_A128R16
+    default y
+    help
+        Enable Tiny TTF font support for the application.
+
+config LOW_POWER_NO_SHUTDOWN
+    bool "low power dont shutdown"
+    default n

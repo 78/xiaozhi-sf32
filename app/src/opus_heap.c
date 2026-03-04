@@ -17,10 +17,9 @@ L2_RET_BSS_SECT_END
 
 static struct rt_memheap opus_memheap;
 
-//TODO: 
-int mbedtls_platform_set_calloc_free( void * (*calloc_func)( size_t, size_t ),
-                              void (*free_func)( void * ) );
-
+// TODO:
+int mbedtls_platform_set_calloc_free(void *(*calloc_func)(size_t, size_t),
+                                     void (*free_func)(void *));
 
 void *opus_heap_malloc(uint32_t size)
 {
@@ -41,7 +40,6 @@ int opus_heap_init(void)
 {
     rt_memheap_init(&opus_memheap, "opus_memheap", (void *)opus_heap_pool,
                     sizeof(opus_heap_pool));
-
 
     mbedtls_platform_set_calloc_free(opus_heap_calloc, opus_heap_free);
     return 0;

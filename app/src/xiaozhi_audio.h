@@ -12,7 +12,7 @@ void xz_speaker_close(xz_audio_t *thiz);
 void xz_mic_open(xz_audio_t *thiz);
 void xz_mic_close(xz_audio_t *thiz);
 void reinit_audio(void);
-
+void xz_aec_mic_speaker(int on);
 
 #ifdef __cplusplus
 }

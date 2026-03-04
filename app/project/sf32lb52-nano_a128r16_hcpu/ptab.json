@@ -1,0 +1,225 @@
+[
+    {
+        "mem": "flash2", 
+        "base": "0x62000000", 
+        "regions": [
+            {
+                "offset": "0x00000000", 
+                "max_size": "0x00020000", 
+                "tags": [
+                    "FLASH_TABLE"
+                ], 
+                "img": "ftab",
+                "exec": "ftab",            
+                "custom": {
+                    "AUTO_FLASH_MAC_ADDRESS": 1644167168
+                }
+            }, 
+            {
+                "offset": "0x00020000", 
+                "max_size": "0x00020000",
+                "tags": []
+            },
+                        {
+                "offset": "0x00040000", 
+                "max_size": "0x00020000",
+                "tags": []
+            },
+            {
+                "offset": "0x00080000", 
+                "max_size": "0x00010000", 
+                "tags": [], 
+                "ftab": {
+                    "name": "bootloader", 
+                    "address": [
+                        "base"
+                    ]
+                }, 
+                "img": "bootloader"
+            }, 
+            {
+                "offset": "0x000A0000",
+                "max_size": "0x00200000",
+                "tags": [
+                    "DFU_PAN_LOADER"
+                ],
+                "img": "dfu",
+                "ftab": {
+                    "name": "dfu",
+                    "address": [
+                        "base"
+                    ]
+                }
+            },
+            {
+                "offset": "0x002A0000", 
+                "max_size": "0x00800000", 
+                "tags": [
+                    "HCPU_FLASH_CODE"
+                ], 
+                "ftab": {
+                    "name": "main", 
+                    "address": [
+                        "base"
+                    ]
+                }, 
+                "img": "main"
+            }, 
+            {
+                "offset": "0x00AA0000", 
+                "max_size": "0x00004000", 
+                "tags": [
+                    "KVDB_DFU_REGION"
+                ]
+            }, 
+            {
+                "offset": "0x00AC0000", 
+                "max_size": "0x00004000", 
+                "tags": [
+                    "KVDB_BLE_REGION"
+                ]
+            },
+            {
+                "offset": "0x00AE0000",
+                "max_size": "0x01000000",
+                "tags": [
+                    "FS_REGION"
+                ],
+                "img": "fs_root"
+            }
+        ]
+    }, 
+    {
+        "mem": "psram1", 
+        "base": "0x60000000", 
+        "regions": [
+            {
+                "offset": "0x00000000", 
+                "max_size": "0x00800000", 
+                "tags": [
+                ],
+                "ftab": {
+                    "name": "main", 
+                    "address": [
+                        "xip"
+                    ]
+                } 
+            },
+            {
+                "offset": "0x00000000",
+                "max_size": "0x00200000",
+                "tags": [],
+                "ftab": {
+                    "name": "dfu",
+                    "address": [
+                        "xip"
+                    ]
+                }
+            },            
+            {
+                "offset": "0x00800000", 
+                "max_size": "0x00400000", 
+                "tags": [
+                    "PSRAM_DATA"
+                ]
+            }
+        ]
+    }, 
+    {
+        "mem":    "psram1_cbus", 
+        "base":   "0x10000000",
+        "regions": [
+             {
+                "offset": "0x00000000", 
+                "max_size": "0x00800000", 
+                "tags": [
+                    "HCPU_PSRAM_CODE"
+                ], 
+                "exec": "main"
+            },
+            {
+                "offset": "0x00000000",
+                "max_size": "0x00200000",
+                "tags": [
+                    "DFU_PSRAM_CODE"
+                ],
+                "exec": "dfu"
+            }
+        ]
+    },    
+    {
+        "mem": "hpsys_ram", 
+        "base": "0x20000000", 
+        "regions": [
+            {
+                "offset": "0x00000000", 
+                "max_size": "0x0007FC00", 
+                "tags": [
+                    "HCPU_RAM_DATA"
+                ]
+            }, 
+            {
+                "offset": "0x00020000", 
+                "max_size": "0x00010000", 
+                "ftab": {
+                    "name": "bootloader", 
+                    "address": [
+                        "xip"
+                    ]
+                }, 
+                "tags": [
+                    "FLASH_BOOT_LOADER"
+                ],
+                "exec": "bootloader" 
+            }, 
+            {
+                "offset": "0x00040000", 
+                "max_size": "0x00010000", 
+                "tags": [
+                    "BOOTLOADER_RAM_DATA"
+                ]
+            }, 
+            {
+                "offset": "0x0007FC00", 
+                "max_size": "0x00000000", 
+                "tags": [
+                    "HCPU_RO_DATA"
+                ]
+            }, 
+            {
+                "offset": "0x0007FC00", 
+                "max_size": "0x00000400", 
+                "tags": [
+                    "HPSYS_MBOX"
+                ]
+            }, 
+            {
+                "offset": "0x0007FC00", 
+                "max_size": "0x00000200", 
+                "tags": [
+                    "HCPU2LCPU_MB_CH2_BUF"
+                ]
+            }, 
+            {
+                "offset": "0x0007FE00", 
+                "max_size": "0x00000200", 
+                "tags": [
+                    "HCPU2LCPU_MB_CH1_BUF"
+                ]
+            }
+        ]
+    }, 
+    {
+        "mem": "lpsys_ram", 
+        "base": "0x20400000", 
+        "regions": [
+            {
+                "offset": "0x00000000", 
+                "max_size": "0x00006000", 
+                "tags": [
+                    "LPSYS_RAM"
+                ]
+            }
+        ]
+    }
+]

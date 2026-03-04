@@ -26,6 +26,13 @@
 #include "../kws/app_recorder_process.h"
 #include "../board/board_hardware.h"
 #include "xiaozhi_screen.h"
+#include "xiaozhi_mqtt.h"
+
+#ifdef EZIP_BINARY_MODE
+#include "xiaozhi_ezip_array.h"
+#else
+#include "xiaozhi_array.h"
+#endif
 
 #define SCALE_DPX(val) LV_DPX((val) * get_scale_factor())
 
@@ -34,6 +41,9 @@ lv_obj_t *sleep_screen = NULL;
 lv_obj_t *low_battery_shutdown_screen = NULL;
 lv_obj_t *low_battery_warning_screen = NULL;
 lv_obj_t *g_startup_screen = NULL;
+lv_obj_t *call_screen = NULL;
+static lv_obj_t *call_img = NULL;
+static lv_obj_t *call_title_label = NULL;
 //休眠页面
 static lv_obj_t *sleep_label = NULL;
 static int sleep_countdown = 3;
@@ -70,14 +80,16 @@ extern rt_timer_t update_weather_ui_timer;
 extern uint8_t aec_enabled;
 extern const unsigned char xiaozhi_font[];
 extern const int xiaozhi_font_size;
-extern const lv_image_dsc_t cdian2; 
-extern const lv_image_dsc_t startup_logo;  //开机动画图标
+extern const lv_image_dsc_t call_phone; //通话图标
+// 引入小智连接状态
+extern xiaozhi_ws_t g_xz_ws;
+extern xiaozhi_context_t g_xz_context;
 extern lv_obj_t *standby_screen;
 extern lv_obj_t *cont;
 extern lv_obj_t *update_confirm_popup;
-extern const lv_image_dsc_t no_power2;
 extern bool low_battery_shutdown_triggered;
 extern lv_obj_t *g_screen_before_low_battery;
+extern rt_mailbox_t g_bt_app_mb;
 static void sleep_countdown_cb(lv_timer_t *timer)
 {
     
@@ -135,10 +147,17 @@ void show_sleep_countdown_and_sleep(void)
     const int tip_font_size = 36;
     const int big_font_size = 120;
 
+    #if defined(TINY_TTF_MODE)
+    if (!g_tip_font)
+        g_tip_font = lv_tiny_ttf_create_file("A:/DroidSansFallback.ttf", tip_font_size);
+    if (!g_big_font)
+        g_big_font = lv_tiny_ttf_create_file("A:/DroidSansFallback.ttf", big_font_size);
+    #else
     if (!g_tip_font)
         g_tip_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, tip_font_size);
     if (!g_big_font)
         g_big_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, big_font_size);
+    #endif
 
     if (!sleep_screen) {
         sleep_screen = lv_obj_create(NULL);
@@ -267,10 +286,17 @@ void show_low_battery_shutdown(void)
     const int tip_font_size = 36;
     const int big_font_size = 120;
 
+    #if defined(TINY_TTF_MODE)
+    if (!g_tip_font)
+        g_tip_font = lv_tiny_ttf_create_file("A:/DroidSansFallback.ttf", tip_font_size);
+    if (!g_big_font)
+        g_big_font = lv_tiny_ttf_create_file("A:/DroidSansFallback.ttf", big_font_size);
+    #else
     if (!g_tip_font)
         g_tip_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, tip_font_size);
     if (!g_big_font)
         g_big_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, big_font_size);
+    #endif
 
     if (!low_battery_shutdown_screen) {
         low_battery_shutdown_screen = lv_obj_create(NULL);
@@ -352,11 +378,18 @@ void show_shutdown(void)
     static lv_font_t *g_big_font = NULL;
     const int tip_font_size = 36;
     const int big_font_size = 120;
-
+    
+    #if defined(TINY_TTF_MODE)
+    if (!g_tip_font)
+        g_tip_font = lv_tiny_ttf_create_file("A:/DroidSansFallback.ttf", tip_font_size);
+    if (!g_big_font)
+        g_big_font = lv_tiny_ttf_create_file("A:/DroidSansFallback.ttf", big_font_size);
+    #else
     if (!g_tip_font)
         g_tip_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, tip_font_size);
     if (!g_big_font)
         g_big_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, big_font_size);
+    #endif
 
     if (!shutdown_screen) {
         shutdown_screen = lv_obj_create(NULL);
@@ -427,7 +460,13 @@ void show_low_battery_warning(void)
 
     // 使用 no_power2_map 图片
     lv_obj_t *low_power_img = lv_img_create(low_battery_warning_screen);
+#ifdef EZIP_BINARY_MODE
+    // 使用EZIP文件路径模式
+    lv_img_set_src(low_power_img, "A:/no_power2.ezip"   );
+#else
+    // 使用传统C数组模式    
     lv_img_set_src(low_power_img, &no_power2);
+#endif
     lv_obj_center(low_power_img); // 居中显示
 
     rt_kprintf("Low battery warning image displayed, 3 seconds to shutdown\n");
@@ -517,14 +556,6 @@ void show_startup_animation(void)
     g_startup_animation_active = 1;         // 设置标志
     
     rt_kprintf("Creating startup animation\n");
-    
-    // 检查startup_logo是否可用
-    if (&startup_logo == NULL) {
-        rt_kprintf("Warning: startup_logo not available, skipping animation\n");
-        g_startup_animation_finished = true;
-        g_startup_animation_active = 0;
-        return;
-    }
 
     // 创建全屏启动画面
     if (!g_startup_screen) {
@@ -560,7 +591,13 @@ void show_startup_animation(void)
         return;
     }
     
+#ifdef EZIP_BINARY_MODE
+    // 使用EZIP文件路径模式
+    lv_img_set_src(g_startup_img, "A:/startup_logo.ezip");
+#else
+    // 使用传统C数组模式
     lv_img_set_src(g_startup_img, &startup_logo);
+#endif
     lv_obj_center(g_startup_img); // 居中显示
     lv_obj_set_style_img_opa(g_startup_img, LV_OPA_0, 0); // 初始完全透明
     
@@ -582,4 +619,99 @@ void show_startup_animation(void)
     lv_anim_start(&g_startup_anim);
     
     rt_kprintf("Startup animation started\n");
+}
+
+// 通话界面
+void show_call_screen(void)
+{
+    if (!call_screen)
+    {
+        call_screen = lv_obj_create(NULL);
+        lv_obj_set_style_bg_color(call_screen, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_bg_opa(call_screen, LV_OPA_COVER, 0);
+        // 居中显示通话图标
+        call_img = lv_img_create(call_screen);
+
+        #ifdef EZIP_BINARY_MODE
+        // 使用EZIP文件路径模式
+        lv_img_set_src(call_img, "A:/call_phone.ezip");
+        #else
+        // 使用传统C数组模式    
+        lv_img_set_src(call_img, &call_phone);
+        #endif
+
+        lv_obj_center(call_img);
+        // 顶部连接状态文字
+        static lv_style_t style_call_title;
+        lv_style_init(&style_call_title);
+        static lv_font_t *call_title_font = NULL;
+
+        #if defined(TINY_TTF_MODE)
+        if (!call_title_font)
+            call_title_font = lv_tiny_ttf_create_file("A:/DroidSansFallback.ttf", 28);
+        #else
+        if (!call_title_font)
+            call_title_font = lv_tiny_ttf_create_data(xiaozhi_font, xiaozhi_font_size, 28);
+        #endif
+
+        lv_style_set_text_font(&style_call_title, call_title_font);
+        lv_style_set_text_color(&style_call_title, lv_color_hex(0xFFFFFF));
+
+        call_title_label = lv_label_create(call_screen);
+        lv_obj_add_style(call_title_label, &style_call_title, 0);
+        lv_obj_align(call_title_label, LV_ALIGN_TOP_MID, 0, 16);
+        
+    }
+
+    if (call_title_label)
+    {
+#ifdef XIAOZHI_USING_MQTT
+        rt_kprintf("mqtt_connected  state %d\n", mqtt_g_state);
+        bool mqtt_connected = (mqtt_g_state == kDeviceStateUnknown); 
+        const char *status_text = mqtt_connected ? "           连接异常\n重新连接小智中..."
+                         :             "已连接，可正常通话" ;
+        if(mqtt_g_state == kDeviceStateUnknown)
+        {
+            rt_kprintf("打电话发现小智断开，重新连接小智中...\n");
+            mqtt_hello(&g_xz_context); 
+        }
+
+#else
+        rt_kprintf("is_connected  ssss %d\n", g_xz_ws.is_connected);
+        const char *status_text = (g_xz_ws.is_connected == 1)
+                                  ? "已连接，可正常通话"
+                                  : "       连接异常\n重新连接小智中...";
+        if(!g_xz_ws.is_connected)
+        {
+            rt_kprintf("打电话发现小智断开，重新连接小智中...\n");
+            rt_mb_send(g_bt_app_mb, WEBSOC_RECONNECT); // 发送重连消息
+        }
+                                  
+#endif
+        lv_label_set_text(call_title_label, status_text);
+    }
+
+    lv_screen_load(call_screen);
+}
+
+// 实时更新通话页面顶部连接状态文案
+void xiaozhi_call_screen_update_connection_status_async(void *user_data)
+{
+    (void)user_data;
+    if (call_title_label && lv_screen_active() == call_screen)
+    {
+#ifdef XIAOZHI_USING_MQTT
+        rt_kprintf("mqtt_connected  state change %d\n", mqtt_g_state);
+        bool mqtt_connected = (mqtt_g_state == kDeviceStateUnknown); 
+        const char *status_text = mqtt_connected ? "         连接异常\n请按键重新连接小智"
+                         :             "已连接，可正常通话" ;
+
+#else
+        rt_kprintf("wb_is_connected  change %d\n", g_xz_ws.is_connected);
+        const char *status_text = (g_xz_ws.is_connected == 1)
+                                  ? "已连接，可正常通话"
+                                  : "         连接异常\n请按键重新连接小智";
+#endif
+        lv_label_set_text(call_title_label, status_text);
+    }
 }

@@ -1,118 +1,8 @@
-#include "xiaozhi_ui.h"
+
 #include "lv_image_dsc.h"
-const lv_image_dsc_t * loving[] =
-{
-  &loving_1,
-  &loving_2,
-  &loving_3,
-  &loving_4,
-  &loving_5,
-  &loving_6,
-  &loving_7,
-  &loving_8,
-  &loving_9,
-  &loving_10,
-  &loving_11,
-  &loving_12,
-  &loving_13,
-  &loving_14,
-  &loving_15,
-  &loving_16,
-  &loving_17,
-  &loving_18,
-  &loving_19,
-  &loving_20,
-  &loving_21,
-  &loving_22,
-  &loving_23,
-  &loving_24,
-  &loving_25,
-  &loving_26,
-  &loving_27,
-  &loving_28,
-  &loving_29,
-  &loving_30,
-  &loving_31,
-  &loving_32,
-  &loving_33,
-  &loving_34,
-  &loving_35,
-  &loving_36,
-  &loving_37,
-  &loving_38,
-  &loving_39,
-  &loving_40,
-  &loving_41,
-  &loving_42,
-  &loving_43,
-  &loving_44,
-  &loving_45,
-  &loving_46,
-  &loving_47,
-  &loving_48
-};
 
-const lv_image_dsc_t * kissy[] =
-{
-  &kissy_1,
-  &kissy_2,
-  &kissy_3,
-  &kissy_4,
-  &kissy_5,
-  &kissy_6,
-  &kissy_7,
-  &kissy_8,
-  &kissy_9,
-  &kissy_10,
-  &kissy_11,
-  &kissy_12,
-  &kissy_13,
-  &kissy_14,
-  &kissy_15,
-  &kissy_16,
-  &kissy_17,
-  &kissy_18,
-  &kissy_19,
-  &kissy_20,
-  &kissy_21,
-  &kissy_22,
-  &kissy_23,
-  &kissy_24,
-  &kissy_25,
-  &kissy_26,
-  &kissy_27,
-  &kissy_28,
-  &kissy_29,
-  &kissy_30,
-  &kissy_31,
-  &kissy_32,
-  &kissy_33,
-  &kissy_34,
-  &kissy_35,
-  &kissy_36,
-  &kissy_37,
-  &kissy_38,
-  &kissy_39,
-  &kissy_40,
-  &kissy_41,
-  &kissy_42,
-  &kissy_43,
-  &kissy_44,
-  &kissy_45,
-  &kissy_46,
-  &kissy_47,
-  &kissy_48,
-  &kissy_49,
-  &kissy_50,
-  &kissy_51,
-  &kissy_52,
-  &kissy_53,
-  &kissy_54,
-  &kissy_55,
-  &kissy_56,
-  &kissy_57
-};
-
+#ifndef EZIP_BINARY_MODE
+#include "xiaozhi_array.h"
 const lv_image_dsc_t * angry[] =
 {
   &angry_1,
@@ -171,7 +61,7 @@ const lv_image_dsc_t * angry[] =
   &angry_54,
   &angry_55,
   &angry_56,
-  &angry_57
+  &angry_57,
 };
 
 const lv_image_dsc_t * cool[] =
@@ -235,7 +125,7 @@ const lv_image_dsc_t * cool[] =
   &cool_57,
   &cool_58,
   &cool_59,
-  &cool_60
+  &cool_60,
 };
 
 const lv_image_dsc_t * crying[] =
@@ -265,7 +155,7 @@ const lv_image_dsc_t * crying[] =
   &crying_23,
   &crying_24,
   &crying_25,
-  &crying_26
+  &crying_26,
 };
 
 const lv_image_dsc_t * embarrassed[] =
@@ -326,7 +216,7 @@ const lv_image_dsc_t * embarrassed[] =
   &embarrassed_54,
   &embarrassed_55,
   &embarrassed_56,
-  &embarrassed_57
+  &embarrassed_57,
 };
 
 const lv_image_dsc_t * funny[] =
@@ -387,7 +277,120 @@ const lv_image_dsc_t * funny[] =
   &funny_54,
   &funny_55,
   &funny_56,
-  &funny_57
+  &funny_57,
+};
+
+const lv_image_dsc_t * kissy[] =
+{
+  &kissy_1,
+  &kissy_2,
+  &kissy_3,
+  &kissy_4,
+  &kissy_5,
+  &kissy_6,
+  &kissy_7,
+  &kissy_8,
+  &kissy_9,
+  &kissy_10,
+  &kissy_11,
+  &kissy_12,
+  &kissy_13,
+  &kissy_14,
+  &kissy_15,
+  &kissy_16,
+  &kissy_17,
+  &kissy_18,
+  &kissy_19,
+  &kissy_20,
+  &kissy_21,
+  &kissy_22,
+  &kissy_23,
+  &kissy_24,
+  &kissy_25,
+  &kissy_26,
+  &kissy_27,
+  &kissy_28,
+  &kissy_29,
+  &kissy_30,
+  &kissy_31,
+  &kissy_32,
+  &kissy_33,
+  &kissy_34,
+  &kissy_35,
+  &kissy_36,
+  &kissy_37,
+  &kissy_38,
+  &kissy_39,
+  &kissy_40,
+  &kissy_41,
+  &kissy_42,
+  &kissy_43,
+  &kissy_44,
+  &kissy_45,
+  &kissy_46,
+  &kissy_47,
+  &kissy_48,
+  &kissy_49,
+  &kissy_50,
+  &kissy_51,
+  &kissy_52,
+  &kissy_53,
+  &kissy_54,
+  &kissy_55,
+  &kissy_56,
+  &kissy_57,
+};
+
+const lv_image_dsc_t * loving[] =
+{
+  &loving_1,
+  &loving_2,
+  &loving_3,
+  &loving_4,
+  &loving_5,
+  &loving_6,
+  &loving_7,
+  &loving_8,
+  &loving_9,
+  &loving_10,
+  &loving_11,
+  &loving_12,
+  &loving_13,
+  &loving_14,
+  &loving_15,
+  &loving_16,
+  &loving_17,
+  &loving_18,
+  &loving_19,
+  &loving_20,
+  &loving_21,
+  &loving_22,
+  &loving_23,
+  &loving_24,
+  &loving_25,
+  &loving_26,
+  &loving_27,
+  &loving_28,
+  &loving_29,
+  &loving_30,
+  &loving_31,
+  &loving_32,
+  &loving_33,
+  &loving_34,
+  &loving_35,
+  &loving_36,
+  &loving_37,
+  &loving_38,
+  &loving_39,
+  &loving_40,
+  &loving_41,
+  &loving_42,
+  &loving_43,
+  &loving_44,
+  &loving_45,
+  &loving_46,
+  &loving_47,
+  &loving_48,
 };
 
 const lv_image_dsc_t * neutral[] =
@@ -448,7 +451,7 @@ const lv_image_dsc_t * neutral[] =
   &neutral_54,
   &neutral_55,
   &neutral_56,
-  &neutral_57
+  &neutral_57,
 };
 
 const lv_image_dsc_t * sleepy[] =
@@ -509,7 +512,7 @@ const lv_image_dsc_t * sleepy[] =
   &sleepy_54,
   &sleepy_55,
   &sleepy_56,
-  &sleepy_57
+  &sleepy_57,
 };
 
 const lv_image_dsc_t * surprised[] =
@@ -570,7 +573,7 @@ const lv_image_dsc_t * surprised[] =
   &surprised_54,
   &surprised_55,
   &surprised_56,
-  &surprised_57
+  &surprised_57,
 };
 
 const lv_image_dsc_t * thinking[] =
@@ -631,5 +634,7 @@ const lv_image_dsc_t * thinking[] =
   &thinking_54,
   &thinking_55,
   &thinking_56,
-  &thinking_57
+  &thinking_57,
 };
+
+#endif /* EZIP_BINARY_MODE */

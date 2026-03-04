@@ -29,6 +29,8 @@
 #include "drv_flash.h"
 #include "gui_app_pm.h"
 #include "../board/board_hardware.h"
+#include "xiaozhi_ui.h"
+#include "xiaozhi_audio.h"
 static const char *ota_version =
     "{\r\n "
     "\"version\": 2,\r\n"
@@ -72,6 +74,9 @@ static const char *ota_version =
 // 公共变量定义
 extern uint8_t aec_enabled;
 extern BOOL first_pan_connected;
+extern lv_obj_t *sleep_screen;
+extern uint8_t s_talk_with_hfp;
+extern bool is_xiaozhi_phone;
 
 static uint8_t g_en_vad = 1;
 static uint8_t g_en_aec = 1;
@@ -91,30 +96,30 @@ ble_common_update_type_t ble_request_public_address(bd_addr_t *addr)
     int read_len = rt_flash_config_read(FACTORY_CFG_ID_MAC, mac, 6);
     // OTP没有内容，用UID生成MAC
     if (read_len == 0)
-    {    
+    {
         ret = bt_mac_addr_generate_via_uid_v2(addr);
         if (ret != 0)
-        {   
-            //uid生成失败
+        {
+            // uid生成失败
             rt_kprintf("uid get mac fail: %d", ret);
             return BLE_UPDATE_NO_UPDATE;
         }
         else
         {
             // 抹掉最后一个字节的bit0和bit1，避免组播地址
-            addr->addr[5] &= ~0x03; 
+            addr->addr[5] &= ~0x03;
             rt_kprintf("uid get mac ok\n");
             rt_kprintf("UID mac: %02x:%02x:%02x:%02x:%02x:%02x\n",
-            addr->addr[5], addr->addr[4], addr->addr[3],
-            addr->addr[2], addr->addr[1], addr->addr[0]);
+                       addr->addr[5], addr->addr[4], addr->addr[3],
+                       addr->addr[2], addr->addr[1], addr->addr[0]);
         }
     }
     else
     {
         // OTP有内容，直接用
         memcpy(addr->addr, mac, 6);
-        rt_kprintf("MAC read from OTP: %02x:%02x:%02x:%02x:%02x:%02x\n",
-            mac[5], mac[4], mac[3], mac[2], mac[1], mac[0]);
+        rt_kprintf("MAC read from OTP: %02x:%02x:%02x:%02x:%02x:%02x\n", mac[5],
+                   mac[4], mac[3], mac[2], mac[1], mac[0]);
     }
 
     return BLE_UPDATE_ONCE;
@@ -128,7 +133,7 @@ char *get_mac_address()
         uint8_t *p = (uint8_t *)&(addr);
 
         rt_snprintf((char *)mac_address_string, 20,
-                    "%02x:%02x:%02x:%02x:%02x:%02x", *(p + 1),*p, *(p + 3),
+                    "%02x:%02x:%02x:%02x:%02x:%02x", *(p + 1), *p, *(p + 3),
                     *(p + 2), *(p + 5), *(p + 4));
     }
     return (&(mac_address_string[0]));
@@ -341,7 +346,7 @@ uint8_t vad_is_enable(void)
 
 void vad_set_enable(uint8_t enable)
 {
-    if(enable != g_en_vad)
+    if (enable != g_en_vad)
     {
         g_en_vad = enable;
         xz_set_config_update(true);
@@ -356,7 +361,7 @@ uint8_t aec_is_enable(void)
 
 void aec_set_enable(uint8_t enable)
 {
-    if(enable != g_en_aec)
+    if (enable != g_en_aec)
     {
         g_en_aec = enable;
         xz_set_config_update(true);
@@ -374,13 +379,11 @@ void xz_set_config_update(uint8_t en)
     g_config_change = en;
 }
 
-
-
 // 设备注册函数
 int register_device_with_server(void)
 {
     device_register_params_t reg_params = {0};
-    
+
     // 填充注册参数
     reg_params.mac = get_mac_address();
 
@@ -399,58 +402,121 @@ int register_device_with_server(void)
 #elif defined(BSP_USING_BOARD_SF32LB52_XTY_AI_THT)
     reg_params.model = "sf32lb52-xty-ai-tht";
     reg_params.solution = "SF32LB52_XTY_AI_THT_SPI_ST7789";
+#elif defined(BSP_USING_BOARD_SF32LB52_NANO_A128R16)
+    reg_params.model = "sf32lb52-nano-a128r16";
+    reg_params.solution = "SF32LB52_NANO_A128R16_TFT_CO5300";
 #endif
 
     reg_params.version = VERSION; // 当前固件版本
     reg_params.ota_version = VERSION;
     reg_params.chip_id = get_client_id();
-    
+
     // 服务器注册设备URL
-    const char* ota_server_url = "https://ota.sifli.com";
-    
+    const char *ota_server_url = "https://ota.sifli.com";
+
     // 执行设备注册
     int result = dfu_pan_register_device(ota_server_url, &reg_params);
-    
-    if (result == 0) {
-        rt_kprintf("Device registered successfully with chip_id: %s\n", get_client_id());
-    } else {
+
+    if (result == 0)
+    {
+        rt_kprintf("Device registered successfully with chip_id: %s\n",
+                   get_client_id());
+    }
+    else
+    {
         rt_kprintf("Device registration failed\n");
     }
-    
+
     return result;
 }
 
 // 构建OTA查询URL
-char* build_ota_query_url(const char* chip_id)
+char *build_ota_query_url(const char *chip_id)
 {
     static char query_url[512] = {0};
-    
+
 #ifdef BSP_USING_BOARD_SF32LB52_LCD_N16R8
-    snprintf(query_url, sizeof(query_url), 
-             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_LCD_N16R8_TFT_CO5300/sf32lb52-lcd-n16r8?chip_id=%s&version=latest",
+    snprintf(query_url, sizeof(query_url),
+             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_LCD_N16R8_TFT_CO5300/"
+             "sf32lb52-lcd-n16r8?chip_id=%s&version=latest",
              chip_id);
 #elif defined(BSP_USING_BOARD_SF32LB52_LCHSPI_ULP)
-    snprintf(query_url, sizeof(query_url), 
-             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_ULP_NOR_TFT_CO5300/sf32lb52-lchspi-ulp?chip_id=%s&version=latest",
+    snprintf(query_url, sizeof(query_url),
+             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_ULP_NOR_TFT_CO5300/"
+             "sf32lb52-lchspi-ulp?chip_id=%s&version=latest",
              chip_id);
 #elif defined(BSP_USING_BOARD_SF32LB52_NANO_52J)
-    snprintf(query_url, sizeof(query_url), 
-             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_NANO_52J_TFT_CO5300/sf32lb52-nano-52j?chip_id=%s&version=latest",
+    snprintf(query_url, sizeof(query_url),
+             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_NANO_52J_TFT_CO5300/"
+             "sf32lb52-nano-52j?chip_id=%s&version=latest",
              chip_id);
 #elif defined(BSP_USING_BOARD_SF32LB52_XTY_AI)
-    snprintf(query_url, sizeof(query_url), 
-             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_XTY_AI_SPI_ST7789/sf32lb52-xty-ai?chip_id=%s&version=latest",
+    snprintf(query_url, sizeof(query_url),
+             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_XTY_AI_SPI_ST7789/"
+             "sf32lb52-xty-ai?chip_id=%s&version=latest",
              chip_id);
 #elif defined(BSP_USING_BOARD_SF32LB52_XTY_AI_THT)
-    snprintf(query_url, sizeof(query_url), 
-             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_XTY_AI_THT_SPI_ST7789/sf32lb52-xty-ai-tht?chip_id=%s&version=latest",
+    snprintf(query_url, sizeof(query_url),
+             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_XTY_AI_THT_SPI_ST7789/"
+             "sf32lb52-xty-ai-tht?chip_id=%s&version=latest",
+             chip_id);
+#elif defined(BSP_USING_BOARD_SF32LB52_NANO_A128R16)
+    snprintf(query_url, sizeof(query_url),
+             "https://ota.sifli.com/v2/xiaozhi/SF32LB52_NANO_A128R16_TFT_CO5300/"
+             "sf32lb52-nano-a128r16?chip_id=%s&version=latest",
              chip_id);
 #endif
-    
+
     return query_url;
 }
 
+void answer_phone()
+{
+    if (!s_talk_with_hfp)
+    {
+        if (is_xiaozhi_phone == false)
+        {
+            rt_kprintf("不允许小智接电话 return\n");
+            bt_interface_audio_switch(1); // 声音回到手机
+            return;
+        }
+        s_talk_with_hfp = 1;
+        bt_interface_audio_switch(0);
+        lv_display_trigger_activity(NULL);
+        // 将音频切换为小智
+        audio_server_select_public_audio_device(AUDIO_DEVICE_XIAOZHI);
+        lv_obj_t *now_screen = lv_screen_active();
+        if (now_screen == sleep_screen)
+        {
+            gui_pm_fsm(GUI_PM_ACTION_WAKEUP); // 唤醒设备
+        }
+        // 切换到通话界面
+        ui_switch_to_call_screen();
+    }
+    else
+    {
+        rt_kprintf("s_talk_with_hfp 状态不对: %d\n", s_talk_with_hfp);
+    }
+}
 
-
-
-
+void hung_up_phone()
+{
+    if (s_talk_with_hfp)
+    {
+        lv_display_trigger_activity(NULL);
+        // 切换回默认音频
+        audio_server_select_public_audio_device(AUDIO_DEVICE_SPEAKER);
+        s_talk_with_hfp = 0;
+        // 如果当前处于KWS模式，则退出KWS模式
+        if (g_kws_running)
+        {
+            rt_kprintf("KWS exit\n");
+            g_kws_force_exit = 1;
+        }
+        ui_switch_to_xiaozhi_screen();
+    }
+    else
+    {
+        rt_kprintf("s_talk_with_hfp 状态不对: %d\n", s_talk_with_hfp);
+    }
+}
